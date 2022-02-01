@@ -5,6 +5,7 @@ import edu.ufl.cise.plc.LexicalException;
 public class Lexer implements ILexer {
     @Override
     public IToken next() throws LexicalException {
+        System.out.println("Testing the stuff working or nawh??");
         return null;
     }
 
