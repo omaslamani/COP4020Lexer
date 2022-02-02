@@ -35,7 +35,7 @@ public class Lexer implements ILexer {
         CharSequence toBeMatched = new StringBuilder(1).append(c);
         ignoreCharMatcher = ignoreChar.matcher(toBeMatched);
             //while char is not whitespace, newline, etc.
-            //do stuff
+            //do stuf
         }
 
         return null;
