@@ -1,4 +1,4 @@
-import edu.ufl.cise.plc.IToken;
+package edu.ufl.cise.plc;
 
 public class Token implements IToken {
 

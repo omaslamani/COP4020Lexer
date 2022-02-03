@@ -1,6 +1,4 @@
-import edu.ufl.cise.plc.ILexer;
-import edu.ufl.cise.plc.IToken;
-import edu.ufl.cise.plc.LexicalException;
+package edu.ufl.cise.plc;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
