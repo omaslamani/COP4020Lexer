@@ -35,13 +35,15 @@ public class Lexer implements ILexer {
 
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
-				<=
-				&
-				<<
 				<
-				%
-				***
-				<=<<<
+				<
+				!&
+				!!
+				<=====
+				,
+				&&*
+				*
+				()<<<<<   >> < !
 				""");
 
         lex.identifyToken(lex.inputChars);
@@ -82,10 +84,15 @@ public class Lexer implements ILexer {
                 }
                 case IN_IDENT -> {
                 }
-                case HAVE_LESS -> {
+                case HAVE_LESS, HAVE_GREATER, HAVE_EQ, HAVE_MINUS, HAVE_EXCLAMATION -> {
                     tempToken = possibleToken (tempToken, c);
-                    if (tempToken.getComplete())
+                    if (tempToken.getComplete()){
                         tokens.add(tempToken);
+                        if (tempToken.getLength() == 1){
+                            //include token after single character
+                            i--;
+                        }
+                    }
                 }
                 //default -> throw new IllegalStateException(“lexer bug”);
             }
@@ -128,6 +135,38 @@ public Token start(char c, int line, int column) {
             column++;
             return token;
         }
+        //Greater than
+        case '>' -> {
+            setState(State.HAVE_GREATER);
+            token.concatText(c);
+            token.addLength();
+            column++;
+            return token;
+        }
+        //Equals
+        case '=' -> {
+            setState(State.HAVE_EQ);
+            token.concatText(c);
+            token.addLength();
+            column++;
+            return token;
+        }
+        //Exclamation
+        case '!' -> {
+            setState(State.HAVE_EXCLAMATION);
+            token.concatText(c);
+            token.addLength();
+            column++;
+            return token;
+        }
+        //Minus
+        case '-' -> {
+            setState(State.HAVE_MINUS);
+            token.concatText(c);
+            token.addLength();
+            column++;
+            return token;
+        }
     }
 
     return null;
@@ -161,13 +200,76 @@ public Token possibleToken (Token token, char c){
                         return token;}
                 }
             }
-            case HAVE_GREATER ->{}
-            case HAVE_EXCLAMATION -> {}
-            case HAVE_EQ -> {}
-            case HAVE_MINUS -> {}
-            default -> {return null;}
+            case HAVE_GREATER ->{
+
+                switch (c){
+                    case '>' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.RANGLE);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    case '=' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.GE);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    default -> {token.setKind(IToken.Kind.GT);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case HAVE_EXCLAMATION -> {
+
+                switch (c){
+                    case '=' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.NOT_EQUALS);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    default -> {token.setKind(IToken.Kind.BANG);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case HAVE_EQ -> {
+
+                switch (c){
+                    case '=' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.EQUALS);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    default -> {token.setKind(IToken.Kind.ASSIGN);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case HAVE_MINUS -> {
+
+                switch (c){
+                    case '>' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.RARROW);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    default -> {token.setKind(IToken.Kind.MINUS);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+
+            }
+            default -> {return null;} //might switch to throw exception/error
         }
-    return null;
+
 }
     public Token.Kind findKind(char c){
         Token.Kind kind;
