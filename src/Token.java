@@ -58,4 +58,6 @@ public class Token implements IToken {
     public void setSourceLocation(int line, int column){
         sourceLocation = new SourceLocation(line, column);
     }
+
+    public void setKind(Kind kind){ this.kind = kind; }
 }

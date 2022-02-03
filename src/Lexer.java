@@ -35,16 +35,21 @@ public class Lexer implements ILexer {
     public static void main (String args []) { //probably delete later but for testing
 
         Lexer lex = new Lexer("""
-				\n +
+                +&%  
+		        **/
 				""");
 
-        for (int i = 0; i < lex.inputChars.length(); i++) {
+        lex.identifyToken(lex.inputChars);
 
-              System.out.print(lex.inputChars.charAt(i));
+        for (int i = 0; i < lex.tokens.size(); i++) {
+
+            System.out.println(lex.tokens.get(i).getText());
+            System.out.println("Kind: " + lex.tokens.get(i).getKind());
+            System.out.println("Location: " + lex.tokens.get(i).getSourceLocation() + '\n');
+
 
              }
-        lex.identifyToken(lex.inputChars);
-        System.out.println(lex.tokens.get(0).getText());
+
     }
 
     public void identifyToken(CharSequence inputChars) {
@@ -87,15 +92,18 @@ public Token start(char c, int line, int column, State state) {
     IToken.SourceLocation startPos = new IToken.SourceLocation(line, column);  //save position of first char in token\
 
     switch (c) {
+        //white space
         case ' ','\t','\r' -> {
             column++;
         }
+        //new line character
         case '\n' -> {
             column = 0;
             line++;
         }
-        case '+' -> {
-         Token token = new Token(Token.Kind.PLUS, Character.toString(c), 1, startPos);
+        // all single chars
+        case '&', ',', '/', '(', '[', '%', '|', '+', '^', ')', ']', ';', '*' -> {
+         Token token = new Token(findKind(c), Character.toString(c), 1, startPos);
          state = State.START;
          column++;
          return token;
@@ -106,6 +114,28 @@ public Token start(char c, int line, int column, State state) {
 
 }
 
+    public Token.Kind findKind(char c){
+        Token.Kind kind;
+        switch(c){
+            case '&' -> { kind = Token.Kind.AND;}
+            case ',' -> { kind = Token.Kind.COMMA;}
+            case '/' -> { kind = Token.Kind.DIV;}
+            case '(' -> { kind = Token.Kind.LPAREN;}
+            case '[' -> { kind = Token.Kind.LSQUARE;}
+            case '%' -> { kind = Token.Kind.MOD;}
+            case '|' -> { kind = Token.Kind.OR;}
+            case '+' -> { kind = Token.Kind.PLUS;}
+            case '^' -> { kind = Token.Kind.RETURN;}
+            case ')' -> { kind = Token.Kind.RPAREN;}
+            case ']' -> { kind = Token.Kind.RSQUARE;}
+            case ';' -> { kind = Token.Kind.SEMI;}
+            case '*' -> { kind = Token.Kind.TIMES;}
+            default -> { kind = null;}
+        }
+
+        return kind;
+
+    }
     public void addToTokenList(Token token) {
 
         tokens.add(token);
