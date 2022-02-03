@@ -33,8 +33,9 @@ public class Lexer implements ILexer {
     public static void main (String args []) { //probably delete later but for testing
 
         Lexer lex = new Lexer("""
-                +&%  
-		        **/
+				&*(
+				+[/
+				*
 				""");
 
         lex.identifyToken(lex.inputChars);
@@ -44,7 +45,6 @@ public class Lexer implements ILexer {
             System.out.println(lex.tokens.get(i).getText());
             System.out.println("Kind: " + lex.tokens.get(i).getKind());
             System.out.println("Location: " + lex.tokens.get(i).getSourceLocation() + '\n');
-
 
              }
 
@@ -63,8 +63,6 @@ public class Lexer implements ILexer {
                 line++;
                 column = 0;
             }
-            else
-                column++;
 
             char c = inputChars.charAt(i); // get current char
 
@@ -80,6 +78,8 @@ public class Lexer implements ILexer {
                 //}
                 //default -> throw new IllegalStateException(“lexer bug”);
             }
+
+            column++;
 
         }
 
