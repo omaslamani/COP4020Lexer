@@ -8,6 +8,8 @@ public class Lexer implements ILexer {
     public CharSequence inputChars;
     public ArrayList<Token> tokens;
     private Lexer.State state;
+    private int lexerLine = 0;
+    private int lexerColumn = 0;
 
     private enum State {
         START,
@@ -21,11 +23,35 @@ public class Lexer implements ILexer {
         HAVE_MINUS,
         HAVE_GREATER,
         HAVE_LESS,
-        HAVE_EXCLAMATION
+        HAVE_EXCLAMATION,
+        START_ZERO
     }
+
     public void setState (State newState){
         this.state = newState;
     }
+
+    public void incrementLexerLine (){
+        lexerLine++;
+    }
+
+    public void resetLexerColumn (){
+        lexerColumn = 0;
+    }
+
+    public void incrementLexerColumn (){
+        lexerColumn++;
+    }
+
+    public void decrementLexerLine(){
+        lexerLine--;
+    }
+
+    public void decrementLexerColumn (){
+        lexerColumn--;
+    }
+
+
     public Lexer(String input){
 
         this.inputChars = input;
@@ -35,15 +61,13 @@ public class Lexer implements ILexer {
 
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
-				<
-				<
-				!&
-				!!
-				<=====
-				,
-				&&*
-				*
-				()<<<<<   >> < !
+				()  <<  >
+				&&
+				--0
+				0
+				**    
+				  
+				%,,<<<
 				""");
 
         lex.identifyToken(lex.inputChars);
@@ -60,29 +84,40 @@ public class Lexer implements ILexer {
 
     public void identifyToken(CharSequence inputChars) {
 
-        int line = 0;
-        int column = 0;
-
         setState(State.START);
         Token tempToken = new Token();
         for (int i = 0; i < inputChars.length(); i++) {
 
+            //reset column to 0 on new line
             if (inputChars.charAt(i) == '\n') {
-                line++;
-                column = 0;
+                resetLexerColumn();
             }
 
             char c = inputChars.charAt(i); // get current char
 
             switch (state) {
                 case START -> {
-                    Token token = start(c, line, column);
+                    Token token = start(c, lexerLine, lexerColumn);
                     if (token != null && token.getComplete())
                         tokens.add(token);
                     else
                         tempToken = token;
                 }
                 case IN_IDENT -> {
+                }
+                case IN_INT -> {
+
+                }
+                case START_ZERO -> {
+                    tempToken = possibleToken(tempToken, c);
+                    if (tempToken.getComplete()){
+                        tokens.add(tempToken);
+                        if (tempToken.getLength() == 1){
+                            //include token after single character
+                            i--;
+                            decrementLexerColumn();
+                        }
+                    }
                 }
                 case HAVE_LESS, HAVE_GREATER, HAVE_EQ, HAVE_MINUS, HAVE_EXCLAMATION -> {
                     tempToken = possibleToken (tempToken, c);
@@ -91,13 +126,16 @@ public class Lexer implements ILexer {
                         if (tempToken.getLength() == 1){
                             //include token after single character
                             i--;
+                            decrementLexerColumn();
                         }
                     }
                 }
                 //default -> throw new IllegalStateException(“lexer bug”);
             }
 
-            column++;
+            //increment column if char is not a newline
+           if (inputChars.charAt(i) != '\n')
+                incrementLexerColumn();
 
         }
 
@@ -108,14 +146,9 @@ public Token start(char c, int line, int column) {
     IToken.SourceLocation startPos = new IToken.SourceLocation(line, column);  //save position of first char in token\
     Token token = new Token(startPos);
     switch (c) {
-        //white space
-        case ' ','\t','\r' -> {
-            column++;
-        }
         //new line character
         case '\n' -> {
-            column = 0;
-            line++;
+            incrementLexerLine();
         }
         // all single chars
         case '&', ',', '/', '(', '[', '%', '|', '+', '^', ')', ']', ';', '*' -> {
@@ -124,7 +157,6 @@ public Token start(char c, int line, int column) {
             token.addLength();
             token.setComplete();
             setState(State.START);
-            column++;
             return token;
         }
         //State with less than
@@ -132,7 +164,6 @@ public Token start(char c, int line, int column) {
             setState(State.HAVE_LESS);
             token.concatText(c);
             token.addLength();
-            column++;
             return token;
         }
         //Greater than
@@ -140,7 +171,6 @@ public Token start(char c, int line, int column) {
             setState(State.HAVE_GREATER);
             token.concatText(c);
             token.addLength();
-            column++;
             return token;
         }
         //Equals
@@ -148,7 +178,6 @@ public Token start(char c, int line, int column) {
             setState(State.HAVE_EQ);
             token.concatText(c);
             token.addLength();
-            column++;
             return token;
         }
         //Exclamation
@@ -156,7 +185,6 @@ public Token start(char c, int line, int column) {
             setState(State.HAVE_EXCLAMATION);
             token.concatText(c);
             token.addLength();
-            column++;
             return token;
         }
         //Minus
@@ -164,12 +192,18 @@ public Token start(char c, int line, int column) {
             setState(State.HAVE_MINUS);
             token.concatText(c);
             token.addLength();
-            column++;
             return token;
         }
+        case '0' -> {
+            setState(State.START_ZERO);
+            token.concatText(c);
+            token.addLength();
+            return token;
+        }
+        case '1','2','3','4','5','6','7','8','9' -> {}
     }
 
-    return null;
+    return null; //should return null when there is whitespace and newline
 
 }
 public Token possibleToken (Token token, char c){
@@ -266,6 +300,22 @@ public Token possibleToken (Token token, char c){
                         return token;}
                 }
 
+            }
+            case START_ZERO -> {
+                switch(c) {
+                    case '.' -> {
+                        token.concatText(c);
+                        token.addLength();
+                        setState(State.HAVE_DOT);
+                        return token;
+                    }
+                    default -> {
+                        token.setKind(IToken.Kind.INT_LIT);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;
+                    }
+                }
             }
             default -> {return null;} //might switch to throw exception/error
         }
