@@ -3,13 +3,14 @@ package edu.ufl.cise.plc;
 public class Token implements IToken {
 
     private Kind kind;
-    private String rawText;
+    private String rawText = "";
     private SourceLocation sourceLocation;
     private int intValue = 0;
     private float floatValue = 0;
     private boolean booleanValue;
     private String stringValue;
     private int length;
+    private boolean complete = false;
 
     public Token(Kind kind, String rawText, int length, SourceLocation sourceLocation){
         this.kind = kind;
@@ -19,9 +20,11 @@ public class Token implements IToken {
     }
 
     public Token(){
-
     }
 
+    public Token(SourceLocation sourceLocation){
+        this.sourceLocation = sourceLocation;
+    }
 
 
     @Override
@@ -60,4 +63,14 @@ public class Token implements IToken {
     }
 
     public void setKind(Kind kind){ this.kind = kind; }
+
+    public void concatText (char letter){this.rawText+=letter;}
+
+    public void addLength(){this.length++;}
+
+    public boolean getComplete (){return this.complete;}
+
+    public void setComplete (){this.complete = true;}
+
+    public void setIncomplete (){this.complete = false;}
 }

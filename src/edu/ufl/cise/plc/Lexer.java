@@ -7,6 +7,7 @@ public class Lexer implements ILexer {
 
     public CharSequence inputChars;
     public ArrayList<Token> tokens;
+    private Lexer.State state;
 
     private enum State {
         START,
@@ -22,7 +23,9 @@ public class Lexer implements ILexer {
         HAVE_LESS,
         HAVE_EXCLAMATION
     }
-
+    public void setState (State newState){
+        this.state = newState;
+    }
     public Lexer(String input){
 
         this.inputChars = input;
@@ -31,11 +34,14 @@ public class Lexer implements ILexer {
     }
 
     public static void main (String args []) { //probably delete later but for testing
-
         Lexer lex = new Lexer("""
-				&*(
-				+[/
-				*
+				<=
+				&
+				<<
+				<
+				%
+				***
+				<=<<<
 				""");
 
         lex.identifyToken(lex.inputChars);
@@ -55,8 +61,8 @@ public class Lexer implements ILexer {
         int line = 0;
         int column = 0;
 
-        State state = Lexer.State.START;
-
+        setState(State.START);
+        Token tempToken = new Token();
         for (int i = 0; i < inputChars.length(); i++) {
 
             if (inputChars.charAt(i) == '\n') {
@@ -68,14 +74,19 @@ public class Lexer implements ILexer {
 
             switch (state) {
                 case START -> {
-                    Token token = start(c, line, column, state);
-                    if (token != null)
+                    Token token = start(c, line, column);
+                    if (token != null && token.getComplete())
                         tokens.add(token);
+                    else
+                        tempToken = token;
                 }
                 case IN_IDENT -> {
                 }
-                //case HAVE_DOT -> {
-                //}
+                case HAVE_LESS -> {
+                    tempToken = possibleToken (tempToken, c);
+                    if (tempToken.getComplete())
+                        tokens.add(tempToken);
+                }
                 //default -> throw new IllegalStateException(“lexer bug”);
             }
 
@@ -85,10 +96,10 @@ public class Lexer implements ILexer {
 
     }
 
-public Token start(char c, int line, int column, State state) {
+public Token start(char c, int line, int column) {
 
     IToken.SourceLocation startPos = new IToken.SourceLocation(line, column);  //save position of first char in token\
-
+    Token token = new Token(startPos);
     switch (c) {
         //white space
         case ' ','\t','\r' -> {
@@ -101,17 +112,63 @@ public Token start(char c, int line, int column, State state) {
         }
         // all single chars
         case '&', ',', '/', '(', '[', '%', '|', '+', '^', ')', ']', ';', '*' -> {
-         Token token = new Token(findKind(c), Character.toString(c), 1, startPos);
-         state = State.START;
-         column++;
-         return token;
+            token.setKind(findKind(c));
+            token.concatText(c);
+            token.addLength();
+            token.setComplete();
+            setState(State.START);
+            column++;
+            return token;
+        }
+        //State with less than
+        case '<' -> {
+            setState(State.HAVE_LESS);
+            token.concatText(c);
+            token.addLength();
+            column++;
+            return token;
         }
     }
 
     return null;
 
 }
-
+public Token possibleToken (Token token, char c){
+        switch (state){
+            case HAVE_LESS ->{
+                switch (c){
+                    case '<' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.LANGLE);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    case '=' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.LE);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    case '-' ->{token.concatText(c);
+                        token.addLength();
+                        token.setKind(IToken.Kind.LARROW);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                    default -> {token.setKind(IToken.Kind.LT);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case HAVE_GREATER ->{}
+            case HAVE_EXCLAMATION -> {}
+            case HAVE_EQ -> {}
+            case HAVE_MINUS -> {}
+            default -> {return null;}
+        }
+    return null;
+}
     public Token.Kind findKind(char c){
         Token.Kind kind;
         switch(c){
@@ -128,6 +185,7 @@ public Token start(char c, int line, int column, State state) {
             case ']' -> { kind = Token.Kind.RSQUARE;}
             case ';' -> { kind = Token.Kind.SEMI;}
             case '*' -> { kind = Token.Kind.TIMES;}
+
             default -> { kind = null;}
         }
 
