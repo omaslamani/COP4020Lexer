@@ -4,7 +4,7 @@ import edu.ufl.cise.plc.IToken.Kind;
 
 public interface IToken {
 	
-    public record SourceLocation(int line, int column) {}  
+    public record SourceLocation(int line, int column) {}
 
 	public static enum Kind {
 		IDENT, 

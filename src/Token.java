@@ -9,10 +9,17 @@ public class Token implements IToken {
     private float floatValue = 0;
     private boolean booleanValue;
     private String stringValue;
+    private int length;
 
-    public Token(Kind kind, String rawText){
+    public Token(Kind kind, String rawText, int length, SourceLocation sourceLocation){
         this.kind = kind;
         this.rawText = rawText;
+        this.length = length;
+        this.sourceLocation = sourceLocation;
+    }
+
+    public Token(){
+
     }
 
 
@@ -26,9 +33,7 @@ public class Token implements IToken {
     }
 
     @Override
-    public SourceLocation getSourceLocation() {
-        return sourceLocation;
-    }
+    public SourceLocation getSourceLocation() { return sourceLocation; }
 
     @Override
     public int getIntValue() { return intValue; }
@@ -46,5 +51,11 @@ public class Token implements IToken {
     @Override
     public String getStringValue() {
         return stringValue;
+    }
+
+    public int getLength() { return length; }
+
+    public void setSourceLocation(int line, int column){
+        sourceLocation = new SourceLocation(line, column);
     }
 }
