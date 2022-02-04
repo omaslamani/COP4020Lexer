@@ -61,14 +61,12 @@ public class Lexer implements ILexer {
 
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
-				()  <<  >
-				&&
-				--0
-				0
-				**    
-				  
-				%,,<<<
-				""");
+                49823740.023948023948%676
+                &40985 43985743 029840932840284
+                00000.02
+                10203
+                ........
+                """);
 
         lex.identifyToken(lex.inputChars);
 
@@ -76,7 +74,8 @@ public class Lexer implements ILexer {
 
             System.out.println(lex.tokens.get(i).getText());
             System.out.println("Kind: " + lex.tokens.get(i).getKind());
-            System.out.println("Location: " + lex.tokens.get(i).getSourceLocation() + '\n');
+            System.out.println("Location: " + lex.tokens.get(i).getSourceLocation());
+            System.out.println("Length: " + lex.tokens.get(i).getLength() + '\n');
 
              }
 
@@ -106,7 +105,11 @@ public class Lexer implements ILexer {
                 case IN_IDENT -> {
                 }
                 case IN_INT -> {
-
+                    tempToken = possibleToken(tempToken, c);
+                    if (tempToken.getComplete()){
+                        tokens.add(tempToken);
+                        i--;
+                        decrementLexerColumn();}
                 }
                 case START_ZERO -> {
                     tempToken = possibleToken(tempToken, c);
@@ -130,6 +133,21 @@ public class Lexer implements ILexer {
                         }
                     }
                 }
+                case HAVE_DOT -> {
+                    tempToken = possibleToken (tempToken, c);
+                    if (tempToken.getComplete())
+                        tokens.add(tempToken);
+
+                }
+                case IN_FLOAT -> {
+                    tempToken = possibleToken (tempToken, c);
+                    if (tempToken.getComplete()){
+                        tokens.add(tempToken);
+                        i--;
+                        decrementLexerColumn();}
+
+                }
+
                 //default -> throw new IllegalStateException(“lexer bug”);
             }
 
@@ -151,7 +169,7 @@ public Token start(char c, int line, int column) {
             incrementLexerLine();
         }
         // all single chars
-        case '&', ',', '/', '(', '[', '%', '|', '+', '^', ')', ']', ';', '*' -> {
+        case '&', ',', '/', '(', '[', '%', '|', '+', '^', ')', ']', ';', '*','.' -> {
             token.setKind(findKind(c));
             token.concatText(c);
             token.addLength();
@@ -200,7 +218,13 @@ public Token start(char c, int line, int column) {
             token.addLength();
             return token;
         }
-        case '1','2','3','4','5','6','7','8','9' -> {}
+
+        case '1','2','3','4','5','6','7','8','9' -> {
+            setState(State.IN_INT);
+            token.concatText(c);
+            token.addLength();
+            return token;
+        }
     }
 
     return null; //should return null when there is whitespace and newline
@@ -317,9 +341,57 @@ public Token possibleToken (Token token, char c){
                     }
                 }
             }
+            case HAVE_DOT -> {
+                switch(c){
+                    case '0','1','2','3','4','5','6','7','8','9' ->{
+                        token.concatText(c);
+                        token.addLength();
+                        setState(State.IN_FLOAT);
+                        return token;
+                    }
+                    default ->{token.setKind(IToken.Kind.ERROR);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case IN_FLOAT -> {
+                switch (c){
+                    case '0','1','2','3','4','5','6','7','8','9' ->{
+                        token.concatText(c);
+                        token.addLength();
+                        return token;
+                    }
+                    default -> {
+                        token.setKind(IToken.Kind.FLOAT_LIT);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;}
+                }
+            }
+            case IN_INT -> {
+                switch (c) {
+                    case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
+                        token.concatText(c);
+                        token.addLength();
+                        return token;
+                    }
+                    case '.' -> {
+                        token.concatText(c);
+                        token.addLength();
+                        setState(State.HAVE_DOT);
+                        return token;
+                    }
+                    default -> {
+                        token.setKind(IToken.Kind.INT_LIT);
+                        token.setComplete();
+                        setState(State.START);
+                        return token;
+                    }
+                }
+            }
             default -> {return null;} //might switch to throw exception/error
         }
-
 }
     public Token.Kind findKind(char c){
         Token.Kind kind;
@@ -337,6 +409,7 @@ public Token possibleToken (Token token, char c){
             case ']' -> { kind = Token.Kind.RSQUARE;}
             case ';' -> { kind = Token.Kind.SEMI;}
             case '*' -> { kind = Token.Kind.TIMES;}
+            case '.' -> {kind = Token.Kind.ERROR;}
 
             default -> { kind = null;}
         }
