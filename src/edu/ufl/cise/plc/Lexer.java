@@ -61,6 +61,13 @@ public class Lexer implements ILexer {
 
     }
 
+
+    /*Account for invalid chars (Token error type)
+    * Account for comments
+    * Big integer
+    * Big float
+    * Dealing with escape sqncs in rawText*/
+
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
                 ""
@@ -91,6 +98,7 @@ public class Lexer implements ILexer {
     public void identifyToken(CharSequence inputChars) {
 
         setState(State.START);
+        buildMap();
         Token tempToken = new Token();
         for (int i = 0; i < inputChars.length(); i++) {
 
@@ -243,6 +251,7 @@ public Token start(char c, int line, int column) {
             token.addLength();
             return token;
         }
+        //case 'a','b','c'
     }
 
     return null; //should return null when there is whitespace and newline
@@ -475,7 +484,43 @@ public Token possibleToken (Token token, char c){
 
     }
 
-    //public void buildMap(HashMap<String, Token.Kind>)
+    public void buildMap(){
+        HashMap<String, Token.Kind> map = new HashMap<>();
+        map.put("BLACK", Token.Kind.COLOR_CONST);
+        map.put("BLUE", Token.Kind.COLOR_CONST);
+        map.put("CYAN", Token.Kind.COLOR_CONST);
+        map.put("DARK_GRAY", Token.Kind.COLOR_CONST);
+        map.put("GREEN", Token.Kind.COLOR_CONST);
+        map.put("GRAY", Token.Kind.COLOR_CONST);
+        map.put("LIGHT_GRAY", Token.Kind.COLOR_CONST);
+        map.put("MAGENTA", Token.Kind.COLOR_CONST);
+        map.put("ORANGE", Token.Kind.COLOR_CONST);
+        map.put("PINK", Token.Kind.COLOR_CONST);
+        map.put("RED", Token.Kind.COLOR_CONST);
+        map.put("WHITE", Token.Kind.COLOR_CONST);
+        map.put("YELLOW", Token.Kind.COLOR_CONST);
+        map.put("string", Token.Kind.TYPE);
+        map.put("int", Token.Kind.TYPE);
+        map.put("boolean", Token.Kind.TYPE);
+        map.put("float", Token.Kind.TYPE);
+        map.put("color", Token.Kind.TYPE);
+        map.put("image", Token.Kind.TYPE);
+        map.put("void", Token.Kind.KW_VOID);
+        map.put("getWidth", Token.Kind.IMAGE_OP);
+        map.put("getHeight", Token.Kind.IMAGE_OP);
+        map.put("getRed", Token.Kind.COLOR_OP);
+        map.put("getGreen", Token.Kind.COLOR_OP);
+        map.put("getBlue", Token.Kind.COLOR_OP);
+        map.put("true", Token.Kind.BOOLEAN_LIT);
+        map.put("false", Token.Kind.BOOLEAN_LIT);
+        map.put("if", Token.Kind.KW_IF);
+        map.put("else", Token.Kind.KW_ELSE);
+        map.put("fi", Token.Kind.KW_FI);
+        map.put("write", Token.Kind.KW_WRITE);
+        map.put("console", Token.Kind.KW_CONSOLE);
+       this.reservedMap = map;
+
+    }
 
 
     @Override
