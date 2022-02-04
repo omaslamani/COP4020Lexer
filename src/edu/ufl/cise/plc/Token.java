@@ -67,7 +67,6 @@ public class Token implements IToken {
 
     public void concatText (char letter){this.rawText+=letter;}
 
-    public void concatText (String letters){this.rawText+=letters;}
 
     public void addLength(){this.length++;}
 
@@ -81,7 +80,6 @@ public class Token implements IToken {
 
     public void setStringValue(String val){this.stringValue = val; }
 
-    public void setIncomplete (){this.complete = false;}
 
     public void setBooleanValue(boolean bool) {
         this.booleanValue = bool;

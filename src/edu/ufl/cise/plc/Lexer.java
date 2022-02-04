@@ -11,6 +11,7 @@ public class Lexer implements ILexer {
     private Lexer.State state;
     private int lexerLine = 0;
     private int lexerColumn = 0;
+    private int currToken = -1;
     private HashMap<String, Token.Kind> reservedMap=  new HashMap<>();
 
     private enum State {
@@ -54,34 +55,24 @@ public class Lexer implements ILexer {
     }
 
 
-    public Lexer(String input){
+    public Lexer(String input) {
 
         this.inputChars = input;
         this.tokens = new ArrayList<>();
+        identifyToken(this.inputChars);
 
     }
 
+    //FOR TESTING PURPOSES
 
-    /*Account for invalid chars (Token error type)
-    * Account for comments
-    * Big integer
-    * Big float
-    * Dealing with escape sqncs in rawText*/
-
-    public static void main (String args []) { //probably delete later but for testing
+    /*public static void main (String args []) {
         Lexer lex = new Lexer("""
-                ""
-                bananaTime123
-                HelloBanana
-                Banana%ing you rn
-                BLACK AND MILD YOU NASTY
-                YELLOW
-                getRed
-                true or false
-                ........
+                "This is a string"
+                #this is a comment
+                *
                 """);
 
-        lex.identifyToken(lex.inputChars);
+        //lex.identifyToken(lex.inputChars);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
 
@@ -97,7 +88,7 @@ public class Lexer implements ILexer {
                 System.out.println("Value: " + lex.tokens.get(i).getStringValue() + '\n');
              }
 
-    }
+    }//*/
 
     public void identifyToken(CharSequence inputChars) {
 
@@ -159,7 +150,7 @@ public class Lexer implements ILexer {
                     if (tempToken.getComplete()){
                         tokens.add(tempToken);
                         if (tempToken.getLength() == 1){
-                            //include token after single character
+                            //include token after single characteR
                             i--;
                             decrementLexerColumn();
                         }
@@ -179,8 +170,13 @@ public class Lexer implements ILexer {
                         decrementLexerColumn();}
 
                 }
-
-                //default -> throw new IllegalStateException(“lexer bug”);
+                case IN_COMMENT -> {
+                    if (c == '\n'){
+                        setState(State.START);
+                        resetLexerColumn();
+                        incrementLexerLine();
+                    }
+                }
             }
 
             //increment column if char is not a newline
@@ -188,7 +184,9 @@ public class Lexer implements ILexer {
                 incrementLexerColumn();
 
         }
-
+        Token finalToken = new Token();
+        finalToken.setKind(Token.Kind.EOF);
+        tokens.add(finalToken);
     }
 
 public Token start(char c, int line, int column) {
@@ -267,6 +265,10 @@ public Token start(char c, int line, int column) {
             setState(State.IN_IDENT);
             token.concatText(c);
             token.addLength();
+            return token;
+        }
+        case '#'->{
+            setState(State.IN_COMMENT);
             return token;
         }
         case ' ', '\t','\r'->{return null;}
@@ -388,7 +390,7 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.INT_LIT);
                         token.setComplete();
-                        token.setIntValue(Integer.parseInt(token.getText()));
+                        try{token.setIntValue(Integer.parseInt(token.getText()));}catch(NumberFormatException e){token.setKind(IToken.Kind.ERROR);}
                         setState(State.START);
                         return token;
                     }
@@ -418,7 +420,7 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.FLOAT_LIT);
                         token.setComplete();
-                        token.setFloatValue(Float.parseFloat(token.getText()));
+                        try{token.setFloatValue(Float.parseFloat(token.getText()));}catch(NumberFormatException e){token.setKind(IToken.Kind.ERROR);}
                         setState(State.START);
                         return token;}
                 }
@@ -491,7 +493,7 @@ public Token possibleToken (Token token, char c){
                 }
 
             }
-            default -> {return null;} //might switch to throw exception/error
+            default -> {return null;}
         }
 }
 
@@ -517,19 +519,6 @@ public Token possibleToken (Token token, char c){
         }
 
         return kind;
-
-    }
-    public void addToTokenList(Token token) {
-
-        tokens.add(token);
-
-        //Pattern ignoreChar = Pattern.compile("[\n\t\r\s]+");
-        // Matcher ignoreCharMatcher;
-        // Token tempToken = new Token();
-        //for (int i = 0; i < inputChars.length(); i++) {
-        //CharSequence toBeMatched = new StringBuilder(1).append(c);
-        //ignoreCharMatcher = ignoreChar.matcher(Character.toString(inputChars.charAt(i)));
-        // boolean b = ignoreCharMatcher.matches();
 
     }
 
@@ -574,14 +563,17 @@ public Token possibleToken (Token token, char c){
 
     @Override
     public IToken next() throws LexicalException {
-        System.out.println("Testing the stuff working or nawh?? test");
-
-        return null;
+        currToken++;
+        if (tokens.get(currToken).getKind() == Token.Kind.ERROR)
+            throw new LexicalException("Error - Invalid Token: " + tokens.get(currToken).getSourceLocation());
+        return tokens.get(currToken);
     }
 
 
     @Override
     public IToken peek() throws LexicalException {
-        return null;
+        if (tokens.get(currToken + 1).getKind() == Token.Kind.ERROR)
+            throw new LexicalException("Error - Invalid Token: " + tokens.get(currToken + 1).getSourceLocation());
+        return tokens.get(currToken + 1);
     }
 }
