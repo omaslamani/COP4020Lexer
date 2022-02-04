@@ -1,5 +1,6 @@
 package edu.ufl.cise.plc;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,6 +11,7 @@ public class Lexer implements ILexer {
     private Lexer.State state;
     private int lexerLine = 0;
     private int lexerColumn = 0;
+    private HashMap<String, Token.Kind> reservedMap=  new HashMap<>();
 
     private enum State {
         START,
@@ -61,7 +63,7 @@ public class Lexer implements ILexer {
 
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
-                49823740.02%676
+                ""
                 "whatdsg\tsdfg"
                 00000.02
                 "hello\\nworld"
@@ -411,7 +413,7 @@ public Token possibleToken (Token token, char c){
             }
             case IN_STRING -> {
                 switch(c) {
-                    case '\b', '\t', '\n', '\f', '\r', '\\', '\'' -> {
+                    case '\b',  '\n', '\t', '\f', '\r', '\\', '\'' -> {
                         token.concatText(c);
                         token.addLength();
                         return token;
@@ -429,18 +431,12 @@ public Token possibleToken (Token token, char c){
                         token.addLength();
                         return token;
                     }
-
                 }
-                //if theres a slash
-                // case letters
-                //case quote is the end
-                    //case error for slash and qupte
-
-
             }
             default -> {return null;} //might switch to throw exception/error
         }
 }
+
     public Token.Kind findKind(char c){
         Token.Kind kind;
         switch(c){
@@ -478,6 +474,8 @@ public Token possibleToken (Token token, char c){
         // boolean b = ignoreCharMatcher.matches();
 
     }
+
+    //public void buildMap(HashMap<String, Token.Kind>)
 
 
     @Override

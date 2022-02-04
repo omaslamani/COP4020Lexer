@@ -66,6 +66,8 @@ public class Token implements IToken {
 
     public void concatText (char letter){this.rawText+=letter;}
 
+    public void concatText (String letters){this.rawText+=letters;}
+
     public void addLength(){this.length++;}
 
     public boolean getComplete (){return this.complete;}
