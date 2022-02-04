@@ -51,6 +51,7 @@ public class Token implements IToken {
         return booleanValue;
     }
 
+
     @Override
     public String getStringValue() {
         return stringValue;
@@ -81,4 +82,8 @@ public class Token implements IToken {
     public void setStringValue(String val){this.stringValue = val; }
 
     public void setIncomplete (){this.complete = false;}
+
+    public void setBooleanValue(boolean bool) {
+        this.booleanValue = bool;
+    }
 }
