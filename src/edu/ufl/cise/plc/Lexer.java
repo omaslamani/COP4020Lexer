@@ -61,10 +61,10 @@ public class Lexer implements ILexer {
 
     public static void main (String args []) { //probably delete later but for testing
         Lexer lex = new Lexer("""
-                49823740.023948023948%676
-                &40985 43985743 029840932840284
+                49823740.02%676
+                "whatdsg\tsdfg"
                 00000.02
-                10203
+                "hello\\nworld"
                 ........
                 """);
 
@@ -75,8 +75,13 @@ public class Lexer implements ILexer {
             System.out.println(lex.tokens.get(i).getText());
             System.out.println("Kind: " + lex.tokens.get(i).getKind());
             System.out.println("Location: " + lex.tokens.get(i).getSourceLocation());
-            System.out.println("Length: " + lex.tokens.get(i).getLength() + '\n');
-
+            System.out.println("Length: " + lex.tokens.get(i).getLength());
+            if (lex.tokens.get(i).getKind() == IToken.Kind.INT_LIT)
+                System.out.println("Value: " + lex.tokens.get(i).getIntValue() + '\n');
+            if (lex.tokens.get(i).getKind() == IToken.Kind.FLOAT_LIT)
+                System.out.println("Value: " + lex.tokens.get(i).getFloatValue() + '\n');
+            if (lex.tokens.get(i).getKind() == IToken.Kind.STRING_LIT)
+                System.out.println("Value: " + lex.tokens.get(i).getStringValue() + '\n');
              }
 
     }
@@ -103,6 +108,11 @@ public class Lexer implements ILexer {
                         tempToken = token;
                 }
                 case IN_IDENT -> {
+                }
+                case IN_STRING -> {
+                    tempToken = possibleToken(tempToken, c);
+                    if (tempToken.getComplete())
+                        tokens.add(tempToken);
                 }
                 case IN_INT -> {
                     tempToken = possibleToken(tempToken, c);
@@ -225,6 +235,12 @@ public Token start(char c, int line, int column) {
             token.addLength();
             return token;
         }
+        case '"' -> {
+            setState(State.IN_STRING);
+            token.concatText(c);
+            token.addLength();
+            return token;
+        }
     }
 
     return null; //should return null when there is whitespace and newline
@@ -336,6 +352,7 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.INT_LIT);
                         token.setComplete();
+                        token.setIntValue(Integer.parseInt(token.getText()));
                         setState(State.START);
                         return token;
                     }
@@ -365,6 +382,7 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.FLOAT_LIT);
                         token.setComplete();
+                        token.setFloatValue(Float.parseFloat(token.getText()));
                         setState(State.START);
                         return token;}
                 }
@@ -385,10 +403,40 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.INT_LIT);
                         token.setComplete();
+                        token.setIntValue(Integer.parseInt(token.getText()));
                         setState(State.START);
                         return token;
                     }
                 }
+            }
+            case IN_STRING -> {
+                switch(c) {
+                    case '\b', '\t', '\n', '\f', '\r', '\\', '\'' -> {
+                        token.concatText(c);
+                        token.addLength();
+                        return token;
+                    }
+                    case '"' -> {
+                        token.setKind(IToken.Kind.STRING_LIT);
+                        token.concatText(c);
+                        token.setComplete();
+                        token.setStringValue(token.getText());
+                        setState(State.START);
+                        return token;
+                    }
+                    default -> {
+                        token.concatText(c);
+                        token.addLength();
+                        return token;
+                    }
+
+                }
+                //if theres a slash
+                // case letters
+                //case quote is the end
+                    //case error for slash and qupte
+
+
             }
             default -> {return null;} //might switch to throw exception/error
         }

@@ -72,5 +72,11 @@ public class Token implements IToken {
 
     public void setComplete (){this.complete = true;}
 
+    public void setIntValue(int val){this.intValue = val; }
+
+    public void setFloatValue(float val){this.floatValue = val; }
+
+    public void setStringValue(String val){this.stringValue = val; }
+
     public void setIncomplete (){this.complete = false;}
 }
