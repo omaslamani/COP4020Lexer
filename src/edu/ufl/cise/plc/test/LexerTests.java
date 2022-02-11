@@ -16,7 +16,7 @@ import edu.ufl.cise.plc.LexicalException;
 
 public class LexerTests {
 
-	ILexer getLexer(String input){
+	ILexer getLexer(String input) {
 		 return CompilerComponentFactory.getLexer(input);
 	}
 	

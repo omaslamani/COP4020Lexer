@@ -1,8 +1,7 @@
 package edu.ufl.cise.plc;
+
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Lexer implements ILexer {
 
@@ -64,11 +63,9 @@ public class Lexer implements ILexer {
     }
 
     //FOR TESTING PURPOSES
-
     public static void main (String args []) {
         Lexer lex = new Lexer("""
-                falsetrue true false
-                BLACK BLACKRED
+                "test"
                 """);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
@@ -128,6 +125,11 @@ public class Lexer implements ILexer {
                         }
                 }
                 case IN_STRING -> {
+                   // if (i == inputChars.length() - 1){
+                   //     if (c != '"')
+                   //         throw new LexicalException("Incomplete string literal");
+                   // }
+
                     tempToken = possibleToken(tempToken, c);
                     if (tempToken.getComplete())
                         tokens.add(tempToken);
@@ -446,6 +448,7 @@ public Token possibleToken (Token token, char c){
                     default -> {
                         token.setKind(IToken.Kind.INT_LIT);
                         token.setComplete();
+
                         token.setIntValue(Integer.parseInt(token.getText()));
                         setState(State.START);
                         return token;
@@ -454,11 +457,6 @@ public Token possibleToken (Token token, char c){
             }
             case IN_STRING -> {
                 switch(c) {
-                    case '\b',  '\n', '\t', '\f', '\r', '\\', '\'' -> {
-                        token.concatText(c);
-                        token.addLength();
-                        return token;
-                    }
                     case '"' -> {
                         token.setKind(IToken.Kind.STRING_LIT);
                         token.concatText(c);
