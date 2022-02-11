@@ -65,14 +65,11 @@ public class Lexer implements ILexer {
 
     //FOR TESTING PURPOSES
 
-    /*public static void main (String args []) {
+    public static void main (String args []) {
         Lexer lex = new Lexer("""
-                "This is a string"
-                #this is a comment
-                *
+                falsetrue true false
+                BLACK BLACKRED
                 """);
-
-        //lex.identifyToken(lex.inputChars);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
 
@@ -88,7 +85,17 @@ public class Lexer implements ILexer {
                 System.out.println("Value: " + lex.tokens.get(i).getStringValue() + '\n');
              }
 
-    }//*/
+    }
+
+    /* RUNNING LIST OF ERRORS
+    * handling big ints
+    * unclosed quotes in strings
+    * escape sequences in strings
+    *
+    *
+    *
+    *
+    * */
 
     public void identifyToken(CharSequence inputChars) {
 
@@ -116,10 +123,8 @@ public class Lexer implements ILexer {
                     tempToken = possibleToken(tempToken, c);
                     if (tempToken.getComplete()){
                         tokens.add(tempToken);
-                        if (!reservedMap.containsKey(tempToken.getText())) {
-                            i--;
-                            decrementLexerColumn();
-                        }
+                        i--;
+                        decrementLexerColumn();
                         }
                 }
                 case IN_STRING -> {
@@ -474,27 +479,31 @@ public Token possibleToken (Token token, char c){
                     case 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_','$', '0','1','2','3','4','5','6','7','8','9' ->{
                         token.concatText(c);
                         token.addLength();
+                        return token;
+                    }
+                    default -> {
                         if (reservedMap.containsKey(token.getText())){
                             token.setKind(reservedMap.get(token.getText()));
                             if (token.getKind() == Token.Kind.BOOLEAN_LIT){
                                 token.setBooleanValue(token.getText() == "true");
-                            }
+                                }
                             token.setComplete();
                             setState(State.START);
+                            return token;
                         }
-                        return token;
-                    }
-                    default -> {
-                        token.setKind(IToken.Kind.IDENT);
-                        token.setComplete();
-                        setState(State.START);
-                        return token;
+                        else {
+                            token.setKind(IToken.Kind.IDENT);
+                            token.setComplete();
+                            setState(State.START);
+                            return token;
+                        }
                     }
                 }
 
             }
             default -> {return null;}
         }
+
 }
 
     public Token.Kind findKind(char c){
