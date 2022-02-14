@@ -94,6 +94,122 @@ public class Parser implements IParser {
     }
 
 
+
+    private Expr logicalOrExpr() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr left;
+        Token op;
+        Expr right;
+
+        left = logicalAndExpr();
+        if (match(Token.Kind.OR)){
+            op = tokens.get(current); //this may error because match does current++
+            right = logicalAndExpr();
+            return new BinaryExpr(firstToken, left, op, right);
+        }
+
+        else {
+            //not sure what to return if there is no | symbol
+        }
+
+        return null;
+
+    }
+
+    private Expr logicalAndExpr() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr left;
+        Token op;
+        Expr right;
+
+        left = comparisonExpr();
+        if (match(Token.Kind.AND)){
+            op = tokens.get(current); //this may error because match does current++
+            right = comparisonExpr();
+            return new BinaryExpr(firstToken, left, op, right);
+        }
+
+        else {
+            //not sure what to return if there is no & symbol
+        }
+
+        return null;
+
+    }
+
+    private Expr comparisonExpr() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr left;
+        Token op;
+        Expr right;
+
+        left = additiveExpr();
+        if (match(Token.Kind.LT) | match(Token.Kind.GT) | match(Token.Kind.EQUALS) | match(Token.Kind.NOT_EQUALS) | match(Token.Kind.LE) | match(Token.Kind.GE)){
+            op = tokens.get(current); //this may error because match does current++
+            right = additiveExpr();
+            return new BinaryExpr(firstToken, left, op, right);
+        }
+
+        else {
+            //not sure what to return if there is no comparison symbol
+        }
+
+        return null;
+
+    }
+
+    private Expr additiveExpr() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr left;
+        Token op;
+        Expr right;
+
+        left = multiplicativeExpr();
+        if (match(Token.Kind.PLUS) | match(Token.Kind.MINUS)){
+            op = tokens.get(current); //this may error because match does current++
+            right = multiplicativeExpr();
+            return new BinaryExpr(firstToken, left, op, right);
+        }
+
+        else {
+            //not sure what to return if there is no comparison symbol
+        }
+
+        return null;
+
+    }
+
+    private Expr multiplicativeExpr() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr left;
+        Token op;
+        Expr right;
+
+        left = unaryExpr();
+        if (match(Token.Kind.TIMES) | match(Token.Kind.DIV) | match(Token.Kind.MOD)){
+            op = tokens.get(current); //this may error because match does current++
+            right = unaryExpr();
+            return new BinaryExpr(firstToken, left, op, right);
+        }
+
+        else {
+            //not sure what to return if there is no comparison symbol
+        }
+
+        return null;
+
+    }
+
+    private Expr unaryExpr() throws PLCException {
+        return null;
+    }
+
+
     private Expr primaryExpr() throws PLCException {
         Token.Kind kind = tokens.get(current).getKind();
         switch (kind) {
