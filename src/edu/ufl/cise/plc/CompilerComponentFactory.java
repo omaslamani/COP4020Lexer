@@ -15,8 +15,9 @@ public class CompilerComponentFactory {
 		//		"CompilerComponentFactory must be modified to return an instance of your lexer");
 	}
 
-	public static IParser getParser(String input){
-		return null;
+	public static IParser getParser(String input) throws PLCException {
+		Lexer lex = new Lexer(input);
+		return new Parser(lex.tokens);
 	}
 
 }

@@ -19,7 +19,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                if (x < 2) x = 5 else x = 6 fi
+                true
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -30,7 +30,7 @@ public class Parser implements IParser {
     @Override
     public ASTNode parse() throws PLCException {
        //  try {
-            return expr();
+            return unaryExprPostfix();
        //   } catch (ParseError error) {
        //     return null;
        //     }
@@ -209,6 +209,23 @@ public class Parser implements IParser {
         return null;
     }
 
+    private Expr unaryExprPostfix() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr e;
+        PixelSelector selector;
+
+        e = primaryExpr();
+        current++;
+        if (match(Token.Kind.LSQUARE)){
+            selector = pixelSelector();
+        }
+        else return e;
+
+        return new UnaryExprPostfix(firstToken, e, selector);
+
+    }
+
 
     private Expr primaryExpr() throws PLCException {
         Token.Kind kind = tokens.get(current).getKind();
@@ -243,6 +260,20 @@ public class Parser implements IParser {
         return null;
     }
 
+
+    private PixelSelector pixelSelector() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr x;
+        Expr y;
+        x = expr();
+        if (match(Token.Kind.COMMA)){
+            y = expr();
+        }
+        else throw new PLCException("Missing comma");
+
+        return new PixelSelector(firstToken, x, y);
+    }
 
 
     public boolean match(Token.Kind kind) {

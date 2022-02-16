@@ -65,7 +65,7 @@ public class Lexer implements ILexer {
     //FOR TESTING PURPOSES
     public static void main (String args []) {
         Lexer lex = new Lexer("""
-                "test"
+                true
                 """);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
@@ -80,6 +80,8 @@ public class Lexer implements ILexer {
                 System.out.println("Value: " + lex.tokens.get(i).getFloatValue() + '\n');
             if (lex.tokens.get(i).getKind() == IToken.Kind.STRING_LIT)
                 System.out.println("Value: " + lex.tokens.get(i).getStringValue() + '\n');
+            if (lex.tokens.get(i).getKind() == IToken.Kind.BOOLEAN_LIT)
+                System.out.println("Value: " + lex.tokens.get(i).getBooleanValue() + '\n');
              }
 
     }
@@ -88,7 +90,7 @@ public class Lexer implements ILexer {
     * handling big ints
     * unclosed quotes in strings
     * escape sequences in strings
-    *
+    * fix string value having quotes in it
     *
     *
     *
@@ -483,7 +485,7 @@ public Token possibleToken (Token token, char c){
                         if (reservedMap.containsKey(token.getText())){
                             token.setKind(reservedMap.get(token.getText()));
                             if (token.getKind() == Token.Kind.BOOLEAN_LIT){
-                                token.setBooleanValue(token.getText() == "true");
+                                token.setBooleanValue(token.getText().equals("true"));
                                 }
                             token.setComplete();
                             setState(State.START);
