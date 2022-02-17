@@ -12,20 +12,22 @@ public class Parser implements IParser {
 
     public Parser(ArrayList<Token> tokens) throws PLCException {
         this.tokens = tokens;
-        //parse();
-
     }
 
     //FOR TESTING PURPOSES
-    public static void main (String args []) throws PLCException {
+    /*public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                (4+4) + 5
+                3*2*5
                 """);
         Parser parser = new Parser(lex.tokens);
 
         System.out.println(parser.parse());
 
-    }
+    }*/
+
+    /*Running list of parser errors
+    Currently right associative instead of left*/
+
 
     @Override
     public ASTNode parse() throws PLCException {
@@ -36,18 +38,13 @@ public class Parser implements IParser {
                 throw new LexicalException("Invalid token");
             }
         }
-       //  try {
+
             return expr();
-       //   } catch (ParseError error) {
-       //     return null;
-       //     }
 
         }
 
 
     private Expr expr() throws PLCException {
-
-
 
         if (match(Token.Kind.KW_IF)){
             current++;
@@ -110,7 +107,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.OR)){
             op = tokens.get(current);
             current++;
-            right = logicalAndExpr();
+            right = logicalOrExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
@@ -131,7 +128,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.AND)){
             op = tokens.get(current);
             current++;
-            right = comparisonExpr();
+            right = logicalAndExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
@@ -152,7 +149,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.LT) | match(Token.Kind.GT) | match(Token.Kind.EQUALS) | match(Token.Kind.NOT_EQUALS) | match(Token.Kind.LE) | match(Token.Kind.GE)){
             op = tokens.get(current);
             current++;
-            right = additiveExpr();
+            right = comparisonExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
@@ -170,17 +167,16 @@ public class Parser implements IParser {
         Expr right;
 
         left = multiplicativeExpr();
-        if (match(Token.Kind.PLUS) | match(Token.Kind.MINUS)){
-            op = tokens.get(current);
-            current++;
-            right = multiplicativeExpr();
-            return new BinaryExpr(firstToken, left, op, right);
-        }
 
-        else {
-            return left;
-        }
+            if (match(Token.Kind.PLUS) | match(Token.Kind.MINUS)) {
+                op = tokens.get(current);
+                current++;
+                right = additiveExpr();
 
+                return new BinaryExpr(firstToken, left, op, right);
+            } else {
+                return left;
+            }
     }
 
     private Expr multiplicativeExpr() throws PLCException {
@@ -194,7 +190,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.TIMES) | match(Token.Kind.DIV) | match(Token.Kind.MOD)){
             op = tokens.get(current);
             current++;
-            right = unaryExpr();
+            right = multiplicativeExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
@@ -226,7 +222,7 @@ public class Parser implements IParser {
         PixelSelector selector;
 
         e = primaryExpr();
-        current++;
+        //current++;
         if (match(Token.Kind.LSQUARE)){
             current++;
             selector = pixelSelector();
@@ -239,36 +235,37 @@ public class Parser implements IParser {
 
 
     private Expr primaryExpr() throws PLCException {
+        Expr finalExpr;
         Token.Kind kind = tokens.get(current).getKind();
         switch (kind) {
             case BOOLEAN_LIT -> {
-                return new BooleanLitExpr(tokens.get(current));
+                finalExpr = new BooleanLitExpr(tokens.get(current));
             }
             case STRING_LIT -> {
-                return new StringLitExpr(tokens.get(current));
+                finalExpr = new StringLitExpr(tokens.get(current));
             }
             case INT_LIT -> {
-                return new IntLitExpr(tokens.get(current));
+                finalExpr = new IntLitExpr(tokens.get(current));
             }
             case FLOAT_LIT -> {
-                return new FloatLitExpr(tokens.get(current));
+                finalExpr = new FloatLitExpr(tokens.get(current));
             }
             case IDENT -> {
-                return new IdentExpr(tokens.get(current));
+                finalExpr = new IdentExpr(tokens.get(current));
             }
             case LPAREN -> {
                 current++;
                 Expr expr = expr();
-                current++;
                 if (match(Token.Kind.RPAREN)){
-                    current++;
-                    return expr;
+                    finalExpr = expr;
                 }
                 else throw new PLCException("Missing right parenthesis");
             }
             default -> throw new SyntaxException("Invalid expression");
 
         }
+        current++;
+        return finalExpr;
 
     }
 
@@ -293,12 +290,10 @@ public class Parser implements IParser {
 
 
     public boolean match(Token.Kind kind) {
-        boolean bool;
         if (tokens.get(current).getKind() == kind)
-            bool = true;
+            return true;
         else
-            bool = false;
-        return bool;
+            return false;
     }
 
 }
