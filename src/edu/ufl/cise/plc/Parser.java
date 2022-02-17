@@ -19,7 +19,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                a[x,y]*z
+                if (a & b) if (x) y else z fi else c fi
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -41,6 +41,7 @@ public class Parser implements IParser {
     private Expr expr() throws PLCException {
 
         if (match(Token.Kind.KW_IF)){
+            current++;
             return conditionalExpr();
         }
         else
@@ -58,7 +59,6 @@ public class Parser implements IParser {
         if (match(Token.Kind.LPAREN)) {
             current++;
             condition = expr();
-            current++;
         }
         else { throw new PLCException("Expression needs left parenthesis"); }
 
@@ -67,7 +67,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.RPAREN)) {
             current++;
             trueCase = expr();
-            current++;}
+            }
         else { throw new PLCException("Expression needs right parenthesis"); }
 
 
@@ -75,7 +75,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.KW_ELSE)) {
             current++;
             falseCase = expr();
-            current++;}
+            }
         else { throw new PLCException("Expression missing keyword else"); }
 
 
@@ -253,13 +253,14 @@ public class Parser implements IParser {
                 current++;
                 if (match(Token.Kind.RPAREN)){
                     current++;
+                    return expr;
                 }
                 else throw new PLCException("Missing right parenthesis");
             }
+            default -> throw new SyntaxException("Invalid expression");
 
         }
 
-        return null;
     }
 
 
@@ -274,8 +275,11 @@ public class Parser implements IParser {
             y = expr();
         }
         else throw new PLCException("Missing comma");
-
-        return new PixelSelector(firstToken, x, y);
+        if (match(Token.Kind.RSQUARE)){
+            current++;
+            return new PixelSelector(firstToken, x, y);
+        }
+        else throw new PLCException("Missing comma");
     }
 
 
