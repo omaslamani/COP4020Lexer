@@ -19,7 +19,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                true
+                a[x,y]*z
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -30,7 +30,7 @@ public class Parser implements IParser {
     @Override
     public ASTNode parse() throws PLCException {
        //  try {
-            return unaryExprPostfix();
+            return expr();
        //   } catch (ParseError error) {
        //     return null;
        //     }
@@ -40,18 +40,11 @@ public class Parser implements IParser {
 
     private Expr expr() throws PLCException {
 
-        Token.Kind kind = tokens.get(current).getKind();
-        switch (kind) {
-            //case ConditionalExpr
-            case KW_IF -> {
-                current++;
-                return conditionalExpr();
-            }
-            // case LogicalOrExpr
-            // not sure what kind that would be
-            default -> throw new PLCException("Invalid expression");
-
+        if (match(Token.Kind.KW_IF)){
+            return conditionalExpr();
         }
+        else
+            return logicalOrExpr();
     }
 
     private Expr conditionalExpr() throws PLCException {
@@ -65,6 +58,7 @@ public class Parser implements IParser {
 
         //if kind is left parenthesis
         if (match(Token.Kind.LPAREN)) {
+            current++;
             condition = expr();
             current++;
         }
@@ -73,6 +67,7 @@ public class Parser implements IParser {
 
         //if next kind is right parenthesis
         if (match(Token.Kind.RPAREN)) {
+            current++;
             trueCase = expr();
             current++;}
         else { throw new PLCException("Expression needs right parenthesis"); }
@@ -80,6 +75,7 @@ public class Parser implements IParser {
 
         //if next kind is else
         if (match(Token.Kind.KW_ELSE)) {
+            current++;
             falseCase = expr();
             current++;}
         else { throw new PLCException("Expression missing keyword else"); }
@@ -87,6 +83,7 @@ public class Parser implements IParser {
 
         //if next kind is fi
         if (match(Token.Kind.KW_FI)) {
+            current++;
             return new ConditionalExpr(firstToken, condition, trueCase, falseCase);
                     }
         else { throw new PLCException("Expression missing keyword fi");}
@@ -104,6 +101,7 @@ public class Parser implements IParser {
 
         left = logicalAndExpr();
         if (match(Token.Kind.OR)){
+            current++;
             op = tokens.get(current); //this may error because match does current++
             right = logicalAndExpr();
             return new BinaryExpr(firstToken, left, op, right);
@@ -111,9 +109,10 @@ public class Parser implements IParser {
 
         else {
             //not sure what to return if there is no | symbol
+            return left;
         }
 
-        return null;
+        //return null;
 
     }
 
@@ -126,6 +125,7 @@ public class Parser implements IParser {
 
         left = comparisonExpr();
         if (match(Token.Kind.AND)){
+            current++;
             op = tokens.get(current); //this may error because match does current++
             right = comparisonExpr();
             return new BinaryExpr(firstToken, left, op, right);
@@ -133,9 +133,10 @@ public class Parser implements IParser {
 
         else {
             //not sure what to return if there is no & symbol
+            return left;
         }
 
-        return null;
+        //return null;
 
     }
 
@@ -149,15 +150,17 @@ public class Parser implements IParser {
         left = additiveExpr();
         if (match(Token.Kind.LT) | match(Token.Kind.GT) | match(Token.Kind.EQUALS) | match(Token.Kind.NOT_EQUALS) | match(Token.Kind.LE) | match(Token.Kind.GE)){
             op = tokens.get(current); //this may error because match does current++
+            current++;
             right = additiveExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
             //not sure what to return if there is no comparison symbol
+            return left;
         }
 
-        return null;
+        //return null;
 
     }
 
@@ -171,15 +174,17 @@ public class Parser implements IParser {
         left = multiplicativeExpr();
         if (match(Token.Kind.PLUS) | match(Token.Kind.MINUS)){
             op = tokens.get(current); //this may error because match does current++
+            current++;
             right = multiplicativeExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
+            return left;
             //not sure what to return if there is no comparison symbol
         }
 
-        return null;
+        //return null;
 
     }
 
@@ -193,20 +198,32 @@ public class Parser implements IParser {
         left = unaryExpr();
         if (match(Token.Kind.TIMES) | match(Token.Kind.DIV) | match(Token.Kind.MOD)){
             op = tokens.get(current); //this may error because match does current++
+            current++;
             right = unaryExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
-            //not sure what to return if there is no comparison symbol
+            return left;
         }
 
-        return null;
+        //return null;
 
     }
 
     private Expr unaryExpr() throws PLCException {
-        return null;
+        Token firstToken  = tokens.get(current);
+        Token op;
+        Expr e;
+        if (match(Token.Kind.COLOR_OP) || match(Token.Kind.IMAGE_OP) || match(Token.Kind.BANG) || match(Token.Kind.MINUS)){ //could error. DOUBLE CHECK
+            op = tokens.get(current);
+            current++;
+            e = unaryExpr();
+        }
+        else{
+            return unaryExprPostfix();
+        }
+        return new UnaryExpr(firstToken,op,e);
     }
 
     private Expr unaryExprPostfix() throws PLCException {
@@ -218,6 +235,7 @@ public class Parser implements IParser {
         e = primaryExpr();
         current++;
         if (match(Token.Kind.LSQUARE)){
+            current++;
             selector = pixelSelector();
         }
         else return e;
@@ -250,6 +268,7 @@ public class Parser implements IParser {
                 Expr expr = expr();
                 current++;
                 if (match(Token.Kind.RPAREN)){
+                    current++;
                         //not sure what to return here
                 }
                 else throw new PLCException("Missing right parenthesis");
@@ -268,6 +287,7 @@ public class Parser implements IParser {
         Expr y;
         x = expr();
         if (match(Token.Kind.COMMA)){
+            current++;
             y = expr();
         }
         else throw new PLCException("Missing comma");
@@ -282,7 +302,7 @@ public class Parser implements IParser {
             bool = true;
         else
             bool = false;
-        current++;
+       // current++;
         return bool;
     }
 
