@@ -33,6 +33,8 @@ public class Lexer implements ILexer {
         this.state = newState;
     }
 
+    public State getState (){ return this.state; }
+
     public void incrementLexerLine (){
         lexerLine++;
     }
@@ -63,9 +65,9 @@ public class Lexer implements ILexer {
     }
 
     //FOR TESTING PURPOSES
-    public static void main (String args []) {
+    public static void main (String args [])  {
         Lexer lex = new Lexer("""
-                "this is a string"
+                "string
                 """);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
@@ -90,9 +92,6 @@ public class Lexer implements ILexer {
     * handling big ints
     * unclosed quotes in strings
     * escape sequences in strings
-    * fix string value having quotes in it
-    *
-    *
     *
     * */
 
@@ -127,11 +126,6 @@ public class Lexer implements ILexer {
                         }
                 }
                 case IN_STRING -> {
-                   // if (i == inputChars.length() - 1){
-                   //     if (c != '"')
-                   //         throw new LexicalException("Incomplete string literal");
-                   // }
-
                     tempToken = possibleToken(tempToken, c);
                     if (tempToken.getComplete())
                         tokens.add(tempToken);
@@ -458,12 +452,14 @@ public Token possibleToken (Token token, char c){
                 }
             }
             case IN_STRING -> {
+
                 switch(c) {
                     case '"' -> {
                         token.setKind(IToken.Kind.STRING_LIT);
                         token.concatText(c);
                         token.setComplete();
-                        token.setStringValue(token.getText());
+                        String stringValue = token.getText().substring(1, token.getText().length()-1);
+                        token.setStringValue(stringValue);
                         setState(State.START);
                         return token;
                     }
@@ -575,6 +571,9 @@ public Token possibleToken (Token token, char c){
         currToken++;
         if (tokens.get(currToken).getKind() == Token.Kind.ERROR)
             throw new LexicalException("Error - Invalid Token: " + tokens.get(currToken).getSourceLocation());
+        //if (tokens.get(currToken).getKind() == Token.Kind.EOF && getState() == State.IN_STRING){
+         //   throw new LexicalException("Incomplete string");
+        //}
         return tokens.get(currToken);
     }
 

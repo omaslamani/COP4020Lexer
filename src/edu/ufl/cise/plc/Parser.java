@@ -19,7 +19,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                "this is a string"
+                (4+4) + 5
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -29,6 +29,13 @@ public class Parser implements IParser {
 
     @Override
     public ASTNode parse() throws PLCException {
+
+        //check entire token list for any invalid tokens
+        for (int i = 0; i < tokens.size(); i++){
+            if (tokens.get(i).getKind() == Token.Kind.ERROR){
+                throw new LexicalException("Invalid token");
+            }
+        }
        //  try {
             return expr();
        //   } catch (ParseError error) {
@@ -39,6 +46,8 @@ public class Parser implements IParser {
 
 
     private Expr expr() throws PLCException {
+
+
 
         if (match(Token.Kind.KW_IF)){
             current++;
