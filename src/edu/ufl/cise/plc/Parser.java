@@ -19,7 +19,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                if (a & b) if (x) y else z fi else c fi
+                "this is a string"
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -99,8 +99,8 @@ public class Parser implements IParser {
 
         left = logicalAndExpr();
         if (match(Token.Kind.OR)){
-            current++;
             op = tokens.get(current);
+            current++;
             right = logicalAndExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
@@ -120,8 +120,8 @@ public class Parser implements IParser {
 
         left = comparisonExpr();
         if (match(Token.Kind.AND)){
-            current++;
             op = tokens.get(current);
+            current++;
             right = comparisonExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }

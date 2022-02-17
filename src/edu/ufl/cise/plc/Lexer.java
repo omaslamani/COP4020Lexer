@@ -65,7 +65,7 @@ public class Lexer implements ILexer {
     //FOR TESTING PURPOSES
     public static void main (String args []) {
         Lexer lex = new Lexer("""
-                true
+                "this is a string"
                 """);
 
         for (int i = 0; i < lex.tokens.size(); i++) {
