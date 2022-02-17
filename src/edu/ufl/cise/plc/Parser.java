@@ -199,7 +199,7 @@ public class Parser implements IParser {
         Token firstToken  = tokens.get(current);
         Token op;
         Expr e;
-        if (match(Token.Kind.COLOR_OP) || match(Token.Kind.IMAGE_OP) || match(Token.Kind.BANG) || match(Token.Kind.MINUS)){ //could error. DOUBLE CHECK
+        if (match(Token.Kind.COLOR_OP) || match(Token.Kind.IMAGE_OP) || match(Token.Kind.BANG) || match(Token.Kind.MINUS)){
             op = tokens.get(current);
             current++;
             e = unaryExpr();
@@ -279,7 +279,7 @@ public class Parser implements IParser {
             current++;
             return new PixelSelector(firstToken, x, y);
         }
-        else throw new PLCException("Missing comma");
+        else throw new PLCException("Missing right bracket");
     }
 
 
