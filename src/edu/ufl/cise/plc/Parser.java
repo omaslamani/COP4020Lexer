@@ -54,8 +54,6 @@ public class Parser implements IParser {
         Expr trueCase;
         Expr falseCase;
 
-        //there is probably a cleaner way to do this
-
         //if kind is left parenthesis
         if (match(Token.Kind.LPAREN)) {
             current++;
@@ -102,17 +100,14 @@ public class Parser implements IParser {
         left = logicalAndExpr();
         if (match(Token.Kind.OR)){
             current++;
-            op = tokens.get(current); //this may error because match does current++
+            op = tokens.get(current);
             right = logicalAndExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
-            //not sure what to return if there is no | symbol
             return left;
         }
-
-        //return null;
 
     }
 
@@ -126,17 +121,14 @@ public class Parser implements IParser {
         left = comparisonExpr();
         if (match(Token.Kind.AND)){
             current++;
-            op = tokens.get(current); //this may error because match does current++
+            op = tokens.get(current);
             right = comparisonExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
-            //not sure what to return if there is no & symbol
             return left;
         }
-
-        //return null;
 
     }
 
@@ -149,18 +141,15 @@ public class Parser implements IParser {
 
         left = additiveExpr();
         if (match(Token.Kind.LT) | match(Token.Kind.GT) | match(Token.Kind.EQUALS) | match(Token.Kind.NOT_EQUALS) | match(Token.Kind.LE) | match(Token.Kind.GE)){
-            op = tokens.get(current); //this may error because match does current++
+            op = tokens.get(current);
             current++;
             right = additiveExpr();
             return new BinaryExpr(firstToken, left, op, right);
         }
 
         else {
-            //not sure what to return if there is no comparison symbol
             return left;
         }
-
-        //return null;
 
     }
 
@@ -173,7 +162,7 @@ public class Parser implements IParser {
 
         left = multiplicativeExpr();
         if (match(Token.Kind.PLUS) | match(Token.Kind.MINUS)){
-            op = tokens.get(current); //this may error because match does current++
+            op = tokens.get(current);
             current++;
             right = multiplicativeExpr();
             return new BinaryExpr(firstToken, left, op, right);
@@ -181,10 +170,7 @@ public class Parser implements IParser {
 
         else {
             return left;
-            //not sure what to return if there is no comparison symbol
         }
-
-        //return null;
 
     }
 
@@ -197,7 +183,7 @@ public class Parser implements IParser {
 
         left = unaryExpr();
         if (match(Token.Kind.TIMES) | match(Token.Kind.DIV) | match(Token.Kind.MOD)){
-            op = tokens.get(current); //this may error because match does current++
+            op = tokens.get(current);
             current++;
             right = unaryExpr();
             return new BinaryExpr(firstToken, left, op, right);
@@ -206,8 +192,6 @@ public class Parser implements IParser {
         else {
             return left;
         }
-
-        //return null;
 
     }
 
@@ -269,7 +253,6 @@ public class Parser implements IParser {
                 current++;
                 if (match(Token.Kind.RPAREN)){
                     current++;
-                        //not sure what to return here
                 }
                 else throw new PLCException("Missing right parenthesis");
             }
@@ -302,7 +285,6 @@ public class Parser implements IParser {
             bool = true;
         else
             bool = false;
-       // current++;
         return bool;
     }
 
