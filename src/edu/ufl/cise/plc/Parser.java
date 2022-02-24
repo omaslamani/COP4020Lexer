@@ -15,15 +15,15 @@ public class Parser implements IParser {
     }
 
     //FOR TESTING PURPOSES
-    /*public static void main (String args []) throws PLCException {
+    public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                3*2*5
+                a[x,y] = b
                 """);
         Parser parser = new Parser(lex.tokens);
 
         System.out.println(parser.parse());
 
-    }*/
+    }
 
     /*Running list of parser errors
     Currently right associative instead of left*/
@@ -39,7 +39,7 @@ public class Parser implements IParser {
             }
         }
 
-            return expr();
+            return statement();
 
         }
 
@@ -287,6 +287,71 @@ public class Parser implements IParser {
         }
         else throw new PLCException("Missing right bracket");
     }
+
+    private Dimension dimension() throws PLCException {
+
+        Token firstToken = tokens.get(current);
+        Expr width;
+        Expr height;
+        width = expr();
+        if (match(Token.Kind.COMMA)){
+            current++;
+            height = expr();
+        }
+        else throw new PLCException("Missing comma");
+        if (match(Token.Kind.RSQUARE)){
+            current++;
+            return new Dimension(firstToken, width, height);
+        }
+        else throw new PLCException("Missing right bracket");
+    }
+
+    private Statement statement() throws PLCException {
+
+         Token firstToken = tokens.get(current);
+         String name;
+         PixelSelector selector = null;
+            if (match(Token.Kind.IDENT)){
+                name = tokens.get(current).getText();
+                current++;
+                if (match(Token.Kind.LSQUARE)){
+                    current++;
+                    selector = pixelSelector();
+                }
+                if (match(Token.Kind.ASSIGN)){
+                        current++;
+                        Expr expr = expr();
+                        return new AssignmentStatement(firstToken, name, selector, expr);
+                }
+                else if (match(Token.Kind.LARROW)){
+                    current++;
+                    Expr source = expr();
+                    return new ReadStatement(firstToken, name, selector, source);
+                }
+                else { throw new PLCException("Invalid expression"); }
+            }
+            else if (match(Token.Kind.KW_WRITE)){
+                Expr source;
+                Expr dest;
+                current++;
+                source = expr();
+                if (match(Token.Kind.RARROW)){
+                    current++;
+                    dest = expr();
+                    return new WriteStatement(firstToken, source, dest);
+                }
+                else { throw new PLCException("Expression missing right arrow"); }
+
+
+            }
+            else if (match(Token.Kind.RETURN)){
+                current ++;
+                Expr expr = expr();
+                return new ReturnStatement(firstToken, expr);
+            }
+            else { throw new PLCException("Invalid expression"); }
+    }
+
 
 
     public boolean match(Token.Kind kind) {
