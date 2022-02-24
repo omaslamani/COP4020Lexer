@@ -328,7 +328,7 @@ public class Parser implements IParser {
                     Expr source = expr();
                     return new ReadStatement(firstToken, name, selector, source);
                 }
-                else { throw new PLCException("Invalid expression"); }
+                else { throw new SyntaxException("Invalid expression"); }
             }
             else if (match(Token.Kind.KW_WRITE)){
                 Expr source;
@@ -349,7 +349,7 @@ public class Parser implements IParser {
                 Expr expr = expr();
                 return new ReturnStatement(firstToken, expr);
             }
-            else { throw new PLCException("Invalid expression"); }
+            else { throw new SyntaxException("Invalid expression"); }
     }
 
 
