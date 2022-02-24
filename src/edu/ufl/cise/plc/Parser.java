@@ -17,7 +17,7 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                a[x,y] = b
+                int[x,y] a
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -39,10 +39,43 @@ public class Parser implements IParser {
             }
         }
 
-            return statement();
+            return nameDef();
 
         }
 
+    private NameDef nameDef() throws PLCException{
+
+        Token firstToken = tokens.get(current);
+        String type;
+        String name;
+        Dimension dim;
+
+        if (match(Token.Kind.TYPE)){
+            type = tokens.get(current).getText();
+            current++;}
+        else throw new PLCException("Missing type");
+
+        //if next kind is square bracket
+        if (match(Token.Kind.LSQUARE)){
+                current++;
+                dim = dimension();
+            if (match(Token.Kind.IDENT)){
+                name = tokens.get(current).getText();
+                current++;
+                    return new NameDefWithDim(firstToken, type, name, dim);
+            }
+            else throw new PLCException("Missing name");
+        }
+
+        //if next kind is ident (no dimension)
+        if (match(Token.Kind.IDENT)){
+            name = tokens.get(current).getText();
+            current++;
+            return new NameDef(firstToken, type, name);
+        }
+        else throw new PLCException("Missing name");
+
+    }
 
     private Expr expr() throws PLCException {
 
@@ -236,22 +269,23 @@ public class Parser implements IParser {
 
     private Expr primaryExpr() throws PLCException {
         Expr finalExpr;
+        Token firstToken = tokens.get(current);
         Token.Kind kind = tokens.get(current).getKind();
         switch (kind) {
             case BOOLEAN_LIT -> {
-                finalExpr = new BooleanLitExpr(tokens.get(current));
+                finalExpr = new BooleanLitExpr(firstToken);
             }
             case STRING_LIT -> {
-                finalExpr = new StringLitExpr(tokens.get(current));
+                finalExpr = new StringLitExpr(firstToken);
             }
             case INT_LIT -> {
-                finalExpr = new IntLitExpr(tokens.get(current));
+                finalExpr = new IntLitExpr(firstToken);
             }
             case FLOAT_LIT -> {
-                finalExpr = new FloatLitExpr(tokens.get(current));
+                finalExpr = new FloatLitExpr(firstToken);
             }
             case IDENT -> {
-                finalExpr = new IdentExpr(tokens.get(current));
+                finalExpr = new IdentExpr(firstToken);
             }
             case LPAREN -> {
                 current++;
@@ -261,12 +295,38 @@ public class Parser implements IParser {
                 }
                 else throw new PLCException("Missing right parenthesis");
             }
+            case COLOR_CONST -> {
+                finalExpr = new ColorConstExpr(firstToken);
+            }
+            case LANGLE -> {
+                Expr red, green, blue;
+                current++;
+                red = expr();
+                if (match(Token.Kind.COMMA)){
+                    current++;
+                    green = expr();
+                    if (match(Token.Kind.COMMA)){
+                        current++;
+                        blue = expr();
+                    }
+                    else throw new PLCException("Missing comma");
+                }
+                else throw new PLCException("Missing comma");
+                if (match(Token.Kind.RANGLE)){
+                    current++;
+                    return new ColorExpr(firstToken, red, green, blue);
+                }
+                else throw new PLCException("Missing right angle");
+
+            }
+            case KW_CONSOLE -> {
+                return new ConsoleExpr(firstToken);
+            }
             default -> throw new SyntaxException("Invalid expression");
 
         }
         current++;
         return finalExpr;
-
     }
 
 
