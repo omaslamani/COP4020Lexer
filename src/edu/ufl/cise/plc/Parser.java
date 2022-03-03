@@ -1,6 +1,8 @@
 package edu.ufl.cise.plc;
 
 import edu.ufl.cise.plc.ast.*;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 
@@ -17,7 +19,11 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                int[x,y] a
+                float a()
+                float x;
+                x = 3.33 * 5.55;
+                write x -> console;
+                ^ x + 1;
                 """);
         Parser parser = new Parser(lex.tokens);
 
@@ -39,12 +45,83 @@ public class Parser implements IParser {
             }
         }
 
-            return nameDef();
+            return program();
 
         }
+    private Program program() throws PLCException{
+        Token firstToken = tokens.get(current);
+        Types.Type returnType = null;
+        String name = "";
+        ArrayList<NameDef> params = new ArrayList<>();
+        ArrayList<ASTNode> decsAndStatements = new ArrayList<>();
+        if (match(Token.Kind.TYPE) || match(Token.Kind.KW_VOID)){
+            returnType = Types.Type.toType(tokens.get(current).getText());
+            current++;
+            if (match(Token.Kind.IDENT)){
+                name = tokens.get(current).getText();
+                current++;
+                if (match(Token.Kind.LPAREN)){
+                    current++;
+                        if (match(Token.Kind.RPAREN)){
+                            current++;
+                        }
+                        else{
+                            params.add(nameDef());
+                            while(match(Token.Kind.COMMA)){
+                                current++;
+                                params.add(nameDef());
+                            }
+                            if (match(IToken.Kind.RPAREN)) {
+                                current++;
+                            }
+                            else
+                                throw new PLCException ("Missing Right Paren");
+                        }
 
+                            if (match(Token.Kind.EOF))
+                                return new Program(firstToken,returnType,name,params,decsAndStatements);
+                            else if(match(Token.Kind.TYPE))
+                                decsAndStatements.add(declaration());
+                            else
+                                decsAndStatements.add(statement());
+                            while(match(Token.Kind.SEMI)){
+                                current++;
+                                if (match(Token.Kind.EOF))
+                                    break;
+                                else if(match(Token.Kind.TYPE))
+                                    decsAndStatements.add(declaration());
+                                else
+                                    decsAndStatements.add(statement());
+                            }
+                            if (match(Token.Kind.EOF) && tokens.get(current - 1).getKind() == Token.Kind.SEMI)
+                                return new Program(firstToken,returnType,name,params,decsAndStatements);
+                            else
+                                throw new SyntaxException ("Missing Semicolon");
 
+                }
+                else
+                    throw new SyntaxException ("Missing Left Paren");
+            }
+            else
+                throw new SyntaxException ("Missing Ident");
+        }
+        else
+            throw new SyntaxException ("Missing Type");
+    }
 
+    private VarDeclaration declaration() throws PLCException{
+        Token firstToken = tokens.get(current);
+        NameDef nameDef = null;
+        Token op = null;
+        Expr expression = null;
+        nameDef = nameDef();
+        if (match(Token.Kind.ASSIGN) ||match(Token.Kind.LARROW)){
+            op = tokens.get(current);
+            current++;
+            expression = expr();
+        }
+        return new VarDeclaration(firstToken,nameDef,op,expression);
+    }
     private NameDef nameDef() throws PLCException{
 
         Token firstToken = tokens.get(current);
@@ -315,14 +392,13 @@ public class Parser implements IParser {
                 }
                 else throw new PLCException("Missing comma");
                 if (match(Token.Kind.RANGLE)){
-                    current++;
-                    return new ColorExpr(firstToken, red, green, blue);
+                    finalExpr = new ColorExpr(firstToken, red, green, blue);
                 }
                 else throw new PLCException("Missing right angle");
 
             }
             case KW_CONSOLE -> {
-                return new ConsoleExpr(firstToken);
+                finalExpr = new ConsoleExpr(firstToken);
             }
             default -> throw new SyntaxException("Invalid expression");
 
