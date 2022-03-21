@@ -20,4 +20,9 @@ public class CompilerComponentFactory {
 		return new Parser(lex.tokens);
 	}
 
+	public static IParser getTypeChecker() throws PLCException {
+		//fill in later
+		return null;
+	}
+
 }

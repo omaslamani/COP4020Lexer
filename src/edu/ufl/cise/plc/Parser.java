@@ -19,11 +19,8 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                float a()
-                float x;
-                x = 3.33 * 5.55;
-                write x -> console;
-                ^ x + 1;
+                int f(int x)
+                ^ y+1;
                 """);
         Parser parser = new Parser(lex.tokens);
 
