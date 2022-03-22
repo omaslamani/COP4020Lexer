@@ -47,6 +47,16 @@ public class TypeCheckVisitor implements ASTVisitor {
 			throw new TypeCheckException(message, node.getSourceLoc());
 		}
 	}
+
+	private boolean assignmentCompatiable (Type targetType, Type rhsType){
+
+
+		return (targetType == rhsType
+		|| targetType == FLOAT && rhsType == Type.INT
+		|| targetType == INT && rhsType == FLOAT
+		|| targetType == COLOR && rhsType == Type.INT
+		|| targetType == INT && rhsType == COLOR);
+	}
 	
 	//The type of a BooleanLitExpr is always BOOLEAN.  
 	//Set the type in AST Node for later passes (code generation)
@@ -60,13 +70,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
 		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		stringLitExpr.setType(Type.STRING);
+		return Type.STRING;
 	}
 
 	@Override
 	public Object visitIntLitExpr(IntLitExpr intLitExpr, Object arg) throws Exception {
 		//TODO:  implement this method
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		intLitExpr.setType(Type.INT);
+		return Type.INT;
 	}
 
 	@Override
@@ -78,6 +90,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
 		//TODO:  implement this method
+
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
@@ -143,6 +156,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
 		//TODO:  implement this method
+		String name = identExpr.getText();
+
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
@@ -169,12 +184,17 @@ public class TypeCheckVisitor implements ASTVisitor {
 		check(yType == Type.INT, pixelSelector.getY(), "only ints as pixel selector components");
 		return null;
 	}
-
 	@Override
 	//This method several cases--you don't have to implement them all at once.
 	//Work incrementally and systematically, testing as you go.  
 	public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg) throws Exception {
 		//TODO:  implement this method
+		String name = assignmentStatement.getName();
+		Declaration dec = symbolTable.lookup(name);
+		String msg = "Undeclared variable " + name;
+		check(dec!=null,assignmentStatement,msg);
+		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		//check(
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
@@ -198,6 +218,11 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
 		//TODO:  implement this method
+		String name = declaration.getName();
+		boolean inserted = symbolTable.insert(name, declaration);
+		String message = "Variable " + name + " already declared!";
+		check(inserted, declaration,message);
+
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
