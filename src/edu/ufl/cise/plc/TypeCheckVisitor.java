@@ -150,6 +150,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
 		//TODO:  implement this method
+
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
@@ -157,14 +158,27 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
 		//TODO:  implement this method
 		String name = identExpr.getText();
-
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		Declaration found = symbolTable.lookup(name);
+		String msg = "Variable " + name + " not declared!";
+		check(found != null, identExpr, msg);
+		Type exprType = identExpr.getType();
+		return exprType;
+		//throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws Exception {
 		//TODO  implement this method
-		throw new UnsupportedOperationException();
+		Type condition = (Type) conditionalExpr.getCondition().visit(this,arg);
+		String condtionName = conditionalExpr.getText();
+		String conditionalMsg = "Condition " + condtionName + " is not boolean!";
+		check(condition == BOOLEAN, conditionalExpr,conditionalMsg);
+		Type trueCase = (Type) conditionalExpr.getTrueCase().visit(this,arg);
+		Type falseCase = (Type) conditionalExpr.getFalseCase().visit(this,arg);
+		String caseMsg = "Cases are not the same type";
+		check (trueCase ==falseCase,conditionalExpr,caseMsg);
+		return trueCase;
+		//throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -212,6 +226,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
 		//TODO:  implement this method
+		String name = readStatement.getName();
+		Type targetType = symbolTable.lookup(name).getType();
+		String selectorError = "Read statement cannot havea pixelSelector!";
+		check(readStatement.getSelector() == null, readStatement, selectorError);
+		boolean rhs = ((Type)readStatement.getSource().visit(this,arg) == CONSOLE) || ((Type)readStatement.getSource().visit(this,arg) == STRING);
+		String rhsMsg = "Source must yield a type console or type string";
+		check(rhs == true, readStatement,rhsMsg);
+		readStatement.getTargetDec().setInitialized(true);
+		//wtf do we return?
 		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
@@ -245,12 +268,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
 		//TODO:  implement this method
+		symbolTable.insert(nameDef.getName(), nameDef); //is this right? Does this fuck w anything?
+		//nameDef.
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
 		//TODO:  implement this method
+		symbolTable.insert(nameDefWithDim.getName(), nameDefWithDim); //is this right? Does this fuck w anything?
 		throw new UnsupportedOperationException();
 	}
  
