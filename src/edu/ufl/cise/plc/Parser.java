@@ -19,8 +19,10 @@ public class Parser implements IParser {
     //FOR TESTING PURPOSES
     public static void main (String args []) throws PLCException {
         Lexer lex = new Lexer("""
-                int f(int x)
-                ^ y+1;
+                image BDP0(int size, int size1)
+                image[size,size1] a;
+                a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
+                ^ a;
                 """);
         Parser parser = new Parser(lex.tokens);
 

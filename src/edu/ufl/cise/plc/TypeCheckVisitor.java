@@ -48,14 +48,17 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 	}
 
-	private boolean assignmentCompatiable (Type targetType, Type rhsType){
+	private boolean assignmentCompatible (ASTNode lhs, ASTNode rhs){
+	/*if (lhs. == Type.IMAGE){
 
+				return (targetType == rhsType
+						|| targetType == FLOAT && rhsType == Type.INT
+						|| targetType == INT && rhsType == FLOAT
+						|| targetType == COLOR && rhsType == Type.INT
+						|| targetType == INT && rhsType == COLOR);
 
-		return (targetType == rhsType
-		|| targetType == FLOAT && rhsType == Type.INT
-		|| targetType == INT && rhsType == FLOAT
-		|| targetType == COLOR && rhsType == Type.INT
-		|| targetType == INT && rhsType == COLOR);
+*/
+		return false;
 	}
 	
 	//The type of a BooleanLitExpr is always BOOLEAN.  
@@ -69,14 +72,12 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
-		//TODO:  implement this method
 		stringLitExpr.setType(Type.STRING);
 		return Type.STRING;
 	}
 
 	@Override
 	public Object visitIntLitExpr(IntLitExpr intLitExpr, Object arg) throws Exception {
-		//TODO:  implement this method
 		intLitExpr.setType(Type.INT);
 		return Type.INT;
 	}
@@ -89,9 +90,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-		//TODO:  implement this method
-
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		colorConstExpr.setType(COLOR);
+		return Type.COLOR;
 	}
 
 	@Override
@@ -156,35 +156,40 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
-		//TODO:  implement this method
 		String name = identExpr.getText();
-		Declaration found = symbolTable.lookup(name);
-		String msg = "Variable " + name + " not declared!";
-		check(found != null, identExpr, msg);
-		Type exprType = identExpr.getType();
-		return exprType;
-		//throw new UnsupportedOperationException();
+		Declaration declaration = symbolTable.lookup(name);
+		check(declaration != null, identExpr, "Undefined identifier " + name);
+		check(declaration.isInitialized(), identExpr, "Using uninitialized variable");
+		identExpr.setDec(declaration);
+		Type type = declaration.getType();
+		identExpr.setType(type);
+		return type;
 	}
 
 	@Override
 	public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws Exception {
-		//TODO  implement this method
-		Type condition = (Type) conditionalExpr.getCondition().visit(this,arg);
-		String condtionName = conditionalExpr.getText();
-		String conditionalMsg = "Condition " + condtionName + " is not boolean!";
-		check(condition == BOOLEAN, conditionalExpr,conditionalMsg);
-		Type trueCase = (Type) conditionalExpr.getTrueCase().visit(this,arg);
-		Type falseCase = (Type) conditionalExpr.getFalseCase().visit(this,arg);
-		String caseMsg = "Cases are not the same type";
-		check (trueCase ==falseCase,conditionalExpr,caseMsg);
-		return trueCase;
-		//throw new UnsupportedOperationException();
+
+		Type conditionType = (Type) conditionalExpr.getCondition().visit(this, arg);
+		Type trueCaseType = (Type) conditionalExpr.getTrueCase().visit(this, arg);
+		Type falseCaseType = (Type) conditionalExpr.getFalseCase().visit(this, arg);
+
+		check(conditionType == BOOLEAN, conditionalExpr, "Condition type must be boolean");
+		check(trueCaseType == falseCaseType, conditionalExpr, "True and false cases must be of the same type");
+
+		conditionalExpr.setType(trueCaseType);
+		return trueCaseType;
 	}
 
 	@Override
 	public Object visitDimension(Dimension dimension, Object arg) throws Exception {
-		//TODO  implement this method
-		throw new UnsupportedOperationException();
+
+		Type widthType = (Type) dimension.getWidth().visit(this, arg);
+		Type heightType = (Type) dimension.getHeight().visit(this, arg);
+
+		check(widthType == INT, dimension, "Width must be type int");
+		check(heightType == INT, dimension, "Height must be type int");
+
+		return Type.INT;
 	}
 
 	@Override
@@ -198,6 +203,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		check(yType == Type.INT, pixelSelector.getY(), "only ints as pixel selector components");
 		return null;
 	}
+
 	@Override
 	//This method several cases--you don't have to implement them all at once.
 	//Work incrementally and systematically, testing as you go.  
@@ -207,6 +213,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Declaration dec = symbolTable.lookup(name);
 		String msg = "Undeclared variable " + name;
 		check(dec!=null,assignmentStatement,msg);
+		dec.setInitialized(true);
 		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
 		//check(
 		throw new UnsupportedOperationException("Unimplemented visit method.");
@@ -232,7 +239,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		check(readStatement.getSelector() == null, readStatement, selectorError);
 		boolean rhs = ((Type)readStatement.getSource().visit(this,arg) == CONSOLE) || ((Type)readStatement.getSource().visit(this,arg) == STRING);
 		String rhsMsg = "Source must yield a type console or type string";
-		check(rhs == true, readStatement,rhsMsg);
+		check(rhs, readStatement,rhsMsg);
 		readStatement.getTargetDec().setInitialized(true);
 		//wtf do we return?
 		throw new UnsupportedOperationException("Unimplemented visit method.");
@@ -240,13 +247,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
-		//TODO:  implement this method
 		String name = declaration.getName();
 		boolean inserted = symbolTable.insert(name, declaration);
 		String message = "Variable " + name + " already declared!";
 		check(inserted, declaration,message);
-
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		if (declaration.getExpr() != null) {
+			check(assignmentCompatible(declaration.getNameDef(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
+			declaration.setInitialized(true);
+		}
+		return null; //why?
 	}
 
 
@@ -267,17 +276,14 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
-		//TODO:  implement this method
 		symbolTable.insert(nameDef.getName(), nameDef); //is this right? Does this fuck w anything?
-		//nameDef.
-		throw new UnsupportedOperationException();
+		return nameDef.getType();
 	}
 
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
-		//TODO:  implement this method
 		symbolTable.insert(nameDefWithDim.getName(), nameDefWithDim); //is this right? Does this fuck w anything?
-		throw new UnsupportedOperationException();
+		return nameDefWithDim.getType();
 	}
  
 	@Override
