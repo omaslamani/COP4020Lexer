@@ -56,7 +56,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		TypeCheckVisitor v = new TypeCheckVisitor();
 		ASTNode ast = parser.parse();
 		ast.visit(v, null);
-
 		System.out.println(ast);
 
 	}
@@ -99,17 +98,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 		return false;
 	}
-
-
-	//Stuff left to do
-	/*
-	Visit program
-	Clean up var declaration maybe
-	Thursday todo:
-	fix varDeclaration assignmentCompatible
-	testing
-
-	 */
 	
 	//The type of a BooleanLitExpr is always BOOLEAN.  
 	//Set the type in AST Node for later passes (code generation)
@@ -166,7 +154,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	
 	
-	//Maps forms a lookup table that maps an operator expression pair into result type.  
+	//Map forms a lookup table that maps an operator expression pair into result type.
 	//This more convenient than a long chain of if-else statements. 
 	//Given combinations are legal; if the operator expression pair is not in the map, it is an error. 
 	Map<Pair<Kind,Type>, Type> unaryExprs = Map.of(
@@ -196,7 +184,6 @@ public class TypeCheckVisitor implements ASTVisitor {
 	}
 
 
-	//This method has several cases. Work incrementally and test as you go. 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
 		Kind op = binaryExpr.getOp().getKind();
@@ -334,16 +321,14 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//This method several cases--you don't have to implement them all at once.
 	//Work incrementally and systematically, testing as you go.  
 	public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg) throws Exception {
-		//TODO:  implement this method
+
 		String name = assignmentStatement.getName();
 		Declaration dec = symbolTable.lookup(name);
 		String msg = "Undeclared variable " + name;
 		check(dec!=null,assignmentStatement,msg);
 		symbolTable.lookup(name).setInitialized(true);
 		assignmentStatement.setTargetDec(dec);
-		//save type of target var (ignore for now)
 		Type targetType = dec.getType();
-
 
 		//make possible x and y for pixel selector
 		NameDef defX = null;
@@ -354,38 +339,43 @@ public class TypeCheckVisitor implements ASTVisitor {
 				check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Target type and expression type are not compatible");
 			}
 			else{
+				//check pixel selector tokens are IDENT
 				Token xToken = (Token)assignmentStatement.getSelector().getX().getFirstToken();
 				Token yToken = (Token)assignmentStatement.getSelector().getY().getFirstToken();
 				check((xToken.getKind() == Kind.IDENT && yToken.getKind() == Kind.IDENT),assignmentStatement, "Kind must be Ident");
 				check((symbolTable.lookup(xToken.getText())==null) && (symbolTable.lookup(xToken.getText())==null),assignmentStatement,"PixelSelector vars cannot be global");
+
+				//make declarations for pixel selector
 				defX = new NameDef(xToken,"int",xToken.getText());
 				defY = new NameDef(yToken,"int",yToken.getText());
 				VarDeclaration decX = new VarDeclaration(xToken, defX,null,null);
 				VarDeclaration decY = new VarDeclaration(yToken, defY,null,null);
-				//set type to int
+
+				//set type of pixel selector variables to int
 				assignmentStatement.getSelector().getX().setType(INT);
 				assignmentStatement.getSelector().getY().setType(INT);
 
-				Type xType = (Type) defX.visit(this, arg);
-				Type yType = (Type) defY.visit(this, arg);
+				//visit x and y
+				defX.visit(this, arg);
+				defY.visit(this, arg);
 
 				//mark x and y as initialized
 				symbolTable.lookup(xToken.getText()).setInitialized(true);
 				symbolTable.lookup(yToken.getText()).setInitialized(true);
 
-
 				assignmentStatement.getSelector().visit(this,arg);
 				check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Not compatible");
 				assignmentStatement.getExpr().setCoerceTo(COLOR);
-				//possibly need to put things in symbol table
 			}
 		}
+		//type is not image
 		else{
 			check(assignmentStatement.getSelector()==null, assignmentStatement,"No pixelSelector allowed here!");
 			check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Target type and expression type are not compatible");
 		}
 
 		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		//delete local pixel selector variables
 		if (defX != null){
 			symbolTable.delete(defX.getName());
 			symbolTable.delete(defY.getName());
@@ -459,15 +449,15 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 
 	@Override
-	public Object visitProgram(Program program, Object arg) throws Exception {		
-		//TODO:  this method is incomplete, finish it.  
+	public Object visitProgram(Program program, Object arg) throws Exception {
 		
 		//Save root of AST so return type can be accessed in return statements
 		root = program;
 		
-		//Check declarations and statements
+		//Check params and decsAndStatements
 		List<ASTNode> decsAndStatements = program.getDecsAndStatements();
 		List<NameDef> params = program.getParams();
+
 		for (NameDef names:params) {
 			String message = "Variable " + names.getName() + " already in symbol table";
 			check(symbolTable.lookup(names.getName()) == null, names,message);
