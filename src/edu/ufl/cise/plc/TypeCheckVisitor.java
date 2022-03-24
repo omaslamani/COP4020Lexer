@@ -46,10 +46,13 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//FOR TESTING PURPOSES
 	public static void main (String args []) throws Exception {
 		Lexer lex = new Lexer("""
-                int getTwo()
-                int x;
-                string x;
-                ^ 2;
+				 image BDP0()
+				 int size;
+				 size = 1;
+   				 int Z = 255;
+   				 image[size,size] a;
+   				 a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
+   				 ^ a;
                 """);
 		Parser parser = new Parser(lex.tokens);
 		TypeCheckVisitor v = new TypeCheckVisitor();
@@ -66,27 +69,26 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 	}
 
-	private boolean assignmentCompatible (ASTNode lhs, ASTNode rhs){
-	/*if (lhs. == Type.IMAGE){
-
-				return (targetType == rhsType
-						|| targetType == FLOAT && rhsType == Type.INT
-						|| targetType == INT && rhsType == FLOAT
-						|| targetType == COLOR && rhsType == Type.INT
-						|| targetType == INT && rhsType == COLOR);
-
-*/
+	private boolean assignmentCompatible (Type targetType, Expr expr){
+		Type exprType = expr.getType();
+		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT))
+			return true;
+		if (targetType == IMAGE){
+			if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
+			if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
+			if (exprType == COLOR || exprType == COLORFLOAT) return true;
+		}
 		return false;
 	}
 
 
 	//Stuff left to do
-	/* Binary expression
-	Assignment compatible
-	Assignment statement
+	/*
 	Visit program
 	Clean up var declaration maybe
-
+	Thursday todo:
+	fix varDeclaration assignmentCompatible
+	testing
 
 	 */
 	
@@ -182,24 +184,72 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
 		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
 		Type resultType = null;
-		switch(op) {//AND, OR, PLUS, MINUS, TIMES, DIV, MOD, EQUALS, NOT_EQUALS, LT, LE, GT,GE
+		switch(op) {
+			case AND,OR ->{
+				check(leftType == BOOLEAN && rightType == BOOLEAN,binaryExpr,"One/Both of the type(s) is not boolean!");
+				resultType = BOOLEAN;
+			}
 			case EQUALS,NOT_EQUALS -> {
 				check(leftType == rightType, binaryExpr, "incompatible types for comparison");
 				resultType = Type.BOOLEAN;
 			}
 			case PLUS, MINUS -> {
 				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
-				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
+				else if (leftType == FLOAT && rightType == FLOAT) resultType = FLOAT;
+				else if (leftType == COLOR && rightType == COLOR) resultType = COLOR;
+				else if (leftType == COLORFLOAT && rightType == COLORFLOAT) resultType = COLORFLOAT;
+				else if (leftType == IMAGE && rightType == IMAGE) resultType = IMAGE;
+				else if (leftType == INT && rightType == FLOAT) {binaryExpr.getLeft().setCoerceTo(FLOAT);
+				resultType = FLOAT;}
+				else if (leftType == FLOAT && rightType == INT) {binaryExpr.getRight().setCoerceTo(FLOAT);
+					resultType = FLOAT;}
+				else if (leftType == COLOR && rightType == COLORFLOAT) {binaryExpr.getLeft().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;}
+				else if (leftType == COLORFLOAT && rightType == COLOR) {binaryExpr.getRight().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;}
 				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
 				else check(false, binaryExpr, "incompatible types for operator");
 			}
 			case TIMES, DIV, MOD -> {
 				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == FLOAT && rightType == FLOAT) resultType = FLOAT;
+				else if (leftType == COLOR && rightType == COLOR) resultType = COLOR;
+				else if (leftType == COLORFLOAT && rightType == COLORFLOAT) resultType = COLORFLOAT;
+				else if (leftType == IMAGE && rightType == IMAGE) resultType = IMAGE;
+				else if (leftType == INT && rightType == FLOAT) {binaryExpr.getLeft().setCoerceTo(FLOAT);
+					resultType = FLOAT;}
+				else if (leftType == FLOAT && rightType == INT) {binaryExpr.getRight().setCoerceTo(FLOAT);
+					resultType = FLOAT;}
+				else if (leftType == COLOR && rightType == COLORFLOAT) {binaryExpr.getLeft().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;}
+				else if (leftType == COLORFLOAT && rightType == COLOR) {binaryExpr.getRight().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;}
 				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
+				else if (leftType == IMAGE && rightType == Type.INT) resultType = IMAGE;
+				else if (leftType == IMAGE && rightType == Type.FLOAT) resultType = IMAGE;
+				else if (leftType == INT && rightType == COLOR){binaryExpr.getLeft().setCoerceTo(COLOR);
+					resultType = COLOR;
+				}
+				else if (leftType == FLOAT && rightType == COLOR){binaryExpr.getRight().setCoerceTo(COLORFLOAT);
+					binaryExpr.getLeft().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;
+				}
+				else if (leftType == COLOR && rightType == FLOAT){binaryExpr.getRight().setCoerceTo(COLORFLOAT);
+					binaryExpr.getLeft().setCoerceTo(COLORFLOAT);
+					resultType = COLORFLOAT;
+				}
+				else if (leftType == COLOR && rightType == INT){binaryExpr.getRight().setCoerceTo(COLOR);
+					resultType = COLOR;
+				}
 				else check(false, binaryExpr, "incompatible types for operator");
 			}
 			case LT, LE, GT, GE -> {
-				if (leftType == rightType) resultType = Type.BOOLEAN;
+				if (leftType == Type.INT && rightType == Type.INT) resultType = BOOLEAN;
+				else if (leftType == FLOAT && rightType == FLOAT) resultType = BOOLEAN;
+				else if (leftType == INT && rightType == FLOAT) {binaryExpr.getLeft().setCoerceTo(FLOAT);
+					resultType = BOOLEAN;}
+				else if (leftType == FLOAT && rightType == INT) {binaryExpr.getRight().setCoerceTo(FLOAT);
+					resultType = BOOLEAN;}
 				else check(false, binaryExpr, "incompatible types for operator");
 			}
 			default -> {
@@ -270,10 +320,33 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Declaration dec = symbolTable.lookup(name);
 		String msg = "Undeclared variable " + name;
 		check(dec!=null,assignmentStatement,msg);
-		dec.setInitialized(true);
+		symbolTable.lookup(name).setInitialized(true);
+		assignmentStatement.setTargetDec(dec);
+		//save type of target var (ignore for now)
+		Type targetType = dec.getType();
 		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
-		//check(
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+		if (targetType ==IMAGE){
+			if (assignmentStatement.getSelector() == null){
+				check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Target type and expression type are not compatible");
+			}
+			else{
+				assignmentStatement.getSelector().visit(this,arg);
+				Token xToken = (Token)assignmentStatement.getSelector().getX().getFirstToken();
+				Token yToken = (Token)assignmentStatement.getSelector().getY().getFirstToken();
+				check((xToken.getKind() == Kind.IDENT && yToken.getKind() == Kind.IDENT),assignmentStatement, "Kind must be Ident");
+				check((symbolTable.lookup(xToken.getStringValue())==null) && (symbolTable.lookup(xToken.getStringValue())==null),assignmentStatement,"PixelSelector vars cannot be global");
+				//VarDeclaration decX = new VarDeclaration(xToken,new NameDef(xToken,"INT",xToken.getStringValue()),null,null);
+				//VarDeclaration decY = new VarDeclaration(yToken,new NameDef(yToken,"INT",xToken.getStringValue()),null,null);
+				check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Not compatible");
+				assignmentStatement.getExpr().setCoerceTo(COLOR);
+				//possibly need to put things in symbol table
+			}
+		}
+		else{
+			check(assignmentStatement.getSelector()==null, assignmentStatement,"No pixelSelector allowed here!");
+			check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Target type and expression type are not compatible");
+		}
+		return exprType;
 	}
 
 
@@ -320,11 +393,11 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 		if (declaration.getOp() != null){
 		if (declaration.getOp().getKind() == Kind.ASSIGN){
-				check(assignmentCompatible(declaration.getNameDef(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
+				check(assignmentCompatible(declaration.getType(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
 				declaration.setInitialized(true);
 		}
 		else if (declaration.getOp().getKind() == Kind.LARROW){
-			check(assignmentCompatible(declaration.getNameDef(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
+			check(assignmentCompatible(declaration.getType(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
 			declaration.setInitialized(true);
 		}
 		}
