@@ -41,6 +41,24 @@ public class TypeCheckVisitor implements ASTVisitor {
 	Program root;
 	
 	record Pair<T0,T1>(T0 t0, T1 t1){};  //may be useful for constructing lookup tables.
+
+
+	//FOR TESTING PURPOSES
+	public static void main (String args []) throws Exception {
+		Lexer lex = new Lexer("""
+                int getTwo()
+                int x;
+                string x;
+                ^ 2;
+                """);
+		Parser parser = new Parser(lex.tokens);
+		TypeCheckVisitor v = new TypeCheckVisitor();
+		ASTNode ast = parser.parse();
+		ast.visit(v, null);
+
+		System.out.println(ast);
+
+	}
 	
 	private void check(boolean condition, ASTNode node, String message) throws TypeCheckException {
 		if (!condition) {
@@ -60,6 +78,17 @@ public class TypeCheckVisitor implements ASTVisitor {
 */
 		return false;
 	}
+
+
+	//Stuff left to do
+	/* Binary expression
+	Assignment compatible
+	Assignment statement
+	Visit program
+	Clean up var declaration maybe
+
+
+	 */
 	
 	//The type of a BooleanLitExpr is always BOOLEAN.  
 	//Set the type in AST Node for later passes (code generation)
@@ -149,9 +178,37 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//This method has several cases. Work incrementally and test as you go. 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
-		//TODO:  implement this method
+		Kind op = binaryExpr.getOp().getKind();
+		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
+		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
+		Type resultType = null;
+		switch(op) {//AND, OR, PLUS, MINUS, TIMES, DIV, MOD, EQUALS, NOT_EQUALS, LT, LE, GT,GE
+			case EQUALS,NOT_EQUALS -> {
+				check(leftType == rightType, binaryExpr, "incompatible types for comparison");
+				resultType = Type.BOOLEAN;
+			}
+			case PLUS, MINUS -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == Type.STRING && rightType == Type.STRING) resultType = Type.STRING;
+				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case TIMES, DIV, MOD -> {
+				if (leftType == Type.INT && rightType == Type.INT) resultType = Type.INT;
+				else if (leftType == Type.BOOLEAN && rightType == Type.BOOLEAN) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			case LT, LE, GT, GE -> {
+				if (leftType == rightType) resultType = Type.BOOLEAN;
+				else check(false, binaryExpr, "incompatible types for operator");
+			}
+			default -> {
+				throw new Exception("compiler error");
+			}
+		}
+		binaryExpr.setType(resultType);
+		return resultType;
 
-		throw new UnsupportedOperationException("Unimplemented visit method.");
 	}
 
 	@Override
@@ -232,17 +289,17 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
-		//TODO:  implement this method
+
 		String name = readStatement.getName();
 		Type targetType = symbolTable.lookup(name).getType();
-		String selectorError = "Read statement cannot havea pixelSelector!";
+		String selectorError = "Read statement cannot have a pixelSelector!";
 		check(readStatement.getSelector() == null, readStatement, selectorError);
 		boolean rhs = ((Type)readStatement.getSource().visit(this,arg) == CONSOLE) || ((Type)readStatement.getSource().visit(this,arg) == STRING);
 		String rhsMsg = "Source must yield a type console or type string";
 		check(rhs, readStatement,rhsMsg);
 		readStatement.getTargetDec().setInitialized(true);
-		//wtf do we return?
-		throw new UnsupportedOperationException("Unimplemented visit method.");
+
+		return null;
 	}
 
 	@Override
@@ -251,11 +308,29 @@ public class TypeCheckVisitor implements ASTVisitor {
 		boolean inserted = symbolTable.insert(name, declaration);
 		String message = "Variable " + name + " already declared!";
 		check(inserted, declaration,message);
-		if (declaration.getExpr() != null) {
+		if (declaration.getType() == IMAGE) {
+			if (declaration.getDim() == null)
+				check(declaration.getExpr().getType() == IMAGE, declaration, "Initializer expression is not image");
+		}
+
+		if (declaration.getDim() != null){
+			Type dimType = (Type) declaration.getDim().visit(this, arg);
+			check(dimType == INT, declaration, "Dim type must be int");}
+
+
+		if (declaration.getOp() != null){
+		if (declaration.getOp().getKind() == Kind.ASSIGN){
+				check(assignmentCompatible(declaration.getNameDef(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
+				declaration.setInitialized(true);
+		}
+		else if (declaration.getOp().getKind() == Kind.LARROW){
 			check(assignmentCompatible(declaration.getNameDef(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
 			declaration.setInitialized(true);
 		}
-		return null; //why?
+		}
+
+
+		return null;
 	}
 
 
@@ -276,13 +351,13 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	@Override
 	public Object visitNameDef(NameDef nameDef, Object arg) throws Exception {
-		symbolTable.insert(nameDef.getName(), nameDef); //is this right? Does this fuck w anything?
+		symbolTable.insert(nameDef.getName(), nameDef);
 		return nameDef.getType();
 	}
 
 	@Override
 	public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
-		symbolTable.insert(nameDefWithDim.getName(), nameDefWithDim); //is this right? Does this fuck w anything?
+		symbolTable.insert(nameDefWithDim.getName(), nameDefWithDim);
 		return nameDefWithDim.getType();
 	}
  
