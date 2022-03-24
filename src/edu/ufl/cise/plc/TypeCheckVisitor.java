@@ -46,14 +46,14 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//FOR TESTING PURPOSES
 	public static void main (String args []) throws Exception {
 		Lexer lex = new Lexer("""
-				 image BDP0()
-				 int size;
-				 size = 1;
-   				 int Z = 255;
-   				 image[size,size] a;
-   				 a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
-   				 ^ a;
-                """);
+				image BDP0()
+				int size;
+				size = 1;
+				int Z = 255;
+				image[size,size] a;
+				a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
+				^ a;
+				            """);
 		Parser parser = new Parser(lex.tokens);
 		TypeCheckVisitor v = new TypeCheckVisitor();
 		ASTNode ast = parser.parse();
@@ -69,8 +69,25 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 	}
 
-	private boolean assignmentCompatible (Type targetType, Expr expr){
-		Type exprType = expr.getType();
+	//for assignment statements
+	private boolean assignmentCompatible (Type targetType, AssignmentStatement arg) throws Exception {
+		Expr expr = arg.getExpr();
+		Type exprType = (Type) expr.visit(this, arg);
+		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT))
+			return true;
+		if (targetType == IMAGE){
+			if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
+			if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
+			if (exprType == COLOR || exprType == COLORFLOAT) return true;
+		}
+		return false;
+	}
+
+
+	//for declarations
+	private boolean assignmentCompatible (Type targetType, VarDeclaration arg) throws Exception {
+		Expr expr = arg.getExpr();
+		Type exprType = (Type) expr.visit(this, arg);
 		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT))
 			return true;
 		if (targetType == IMAGE){
@@ -266,7 +283,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		String name = identExpr.getText();
 		Declaration declaration = symbolTable.lookup(name);
 		check(declaration != null, identExpr, "Undefined identifier " + name);
-		check(declaration.isInitialized(), identExpr, "Using uninitialized variable");
+		check(declaration.isInitialized(), identExpr, "Using uninitialized variable " + name);
 		identExpr.setDec(declaration);
 		Type type = declaration.getType();
 		identExpr.setType(type);
@@ -324,28 +341,55 @@ public class TypeCheckVisitor implements ASTVisitor {
 		assignmentStatement.setTargetDec(dec);
 		//save type of target var (ignore for now)
 		Type targetType = dec.getType();
-		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+
+
+		//make possible x and y for pixel selector
+		NameDef defX = null;
+		NameDef defY = null;
+
 		if (targetType ==IMAGE){
 			if (assignmentStatement.getSelector() == null){
-				check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Target type and expression type are not compatible");
+				check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Target type and expression type are not compatible");
 			}
 			else{
-				assignmentStatement.getSelector().visit(this,arg);
 				Token xToken = (Token)assignmentStatement.getSelector().getX().getFirstToken();
 				Token yToken = (Token)assignmentStatement.getSelector().getY().getFirstToken();
 				check((xToken.getKind() == Kind.IDENT && yToken.getKind() == Kind.IDENT),assignmentStatement, "Kind must be Ident");
-				check((symbolTable.lookup(xToken.getStringValue())==null) && (symbolTable.lookup(xToken.getStringValue())==null),assignmentStatement,"PixelSelector vars cannot be global");
-				//VarDeclaration decX = new VarDeclaration(xToken,new NameDef(xToken,"INT",xToken.getStringValue()),null,null);
-				//VarDeclaration decY = new VarDeclaration(yToken,new NameDef(yToken,"INT",xToken.getStringValue()),null,null);
-				check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Not compatible");
+				check((symbolTable.lookup(xToken.getText())==null) && (symbolTable.lookup(xToken.getText())==null),assignmentStatement,"PixelSelector vars cannot be global");
+				defX = new NameDef(xToken,"int",xToken.getText());
+				defY = new NameDef(yToken,"int",yToken.getText());
+				VarDeclaration decX = new VarDeclaration(xToken, defX,null,null);
+				VarDeclaration decY = new VarDeclaration(yToken, defY,null,null);
+				//set type to int
+				assignmentStatement.getSelector().getX().setType(INT);
+				assignmentStatement.getSelector().getY().setType(INT);
+
+				Type xType = (Type) defX.visit(this, arg);
+				Type yType = (Type) defY.visit(this, arg);
+
+				//mark x and y as initialized
+				symbolTable.lookup(xToken.getText()).setInitialized(true);
+				symbolTable.lookup(yToken.getText()).setInitialized(true);
+
+
+				assignmentStatement.getSelector().visit(this,arg);
+				check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Not compatible");
 				assignmentStatement.getExpr().setCoerceTo(COLOR);
 				//possibly need to put things in symbol table
 			}
 		}
 		else{
 			check(assignmentStatement.getSelector()==null, assignmentStatement,"No pixelSelector allowed here!");
-			check(assignmentCompatible(targetType,assignmentStatement.getExpr()),assignmentStatement,"Target type and expression type are not compatible");
+			check(assignmentCompatible(targetType,assignmentStatement),assignmentStatement,"Target type and expression type are not compatible");
 		}
+
+		Type exprType = (Type) assignmentStatement.getExpr().visit(this,arg);
+		if (defX != null){
+			symbolTable.delete(defX.getName());
+			symbolTable.delete(defY.getName());
+		}
+
+
 		return exprType;
 	}
 
@@ -370,38 +414,43 @@ public class TypeCheckVisitor implements ASTVisitor {
 		boolean rhs = ((Type)readStatement.getSource().visit(this,arg) == CONSOLE) || ((Type)readStatement.getSource().visit(this,arg) == STRING);
 		String rhsMsg = "Source must yield a type console or type string";
 		check(rhs, readStatement,rhsMsg);
-		readStatement.getTargetDec().setInitialized(true);
+		symbolTable.lookup(name).setInitialized(true);
 
 		return null;
 	}
 
 	@Override
 	public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
+
 		String name = declaration.getName();
-		boolean inserted = symbolTable.insert(name, declaration);
 		String message = "Variable " + name + " already declared!";
-		check(inserted, declaration,message);
+		check(symbolTable.lookup(name) == null, declaration,message);
+
+		Type nameDefType = (Type) declaration.getNameDef().visit(this, arg);
+
+		//if type is image
 		if (declaration.getType() == IMAGE) {
 			if (declaration.getDim() == null)
 				check(declaration.getExpr().getType() == IMAGE, declaration, "Initializer expression is not image");
+			else {
+				Type dimType = (Type) declaration.getDim().visit(this, arg);
+				check(dimType == INT, declaration, "Dim type must be int");
+			}
 		}
 
-		if (declaration.getDim() != null){
-			Type dimType = (Type) declaration.getDim().visit(this, arg);
-			check(dimType == INT, declaration, "Dim type must be int");}
-
-
+		//has initializer
 		if (declaration.getOp() != null){
 		if (declaration.getOp().getKind() == Kind.ASSIGN){
-				check(assignmentCompatible(declaration.getType(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
-				declaration.setInitialized(true);
+				check(assignmentCompatible(nameDefType, declaration), declaration, "Type of expression and declared type do not match");
+				symbolTable.lookup(name).setInitialized(true);
 		}
 		else if (declaration.getOp().getKind() == Kind.LARROW){
-			check(assignmentCompatible(declaration.getType(), declaration.getExpr()), declaration, "Type of expression and declared type do not match");
-			declaration.setInitialized(true);
+			declaration.getExpr().visit(this, arg);
+			//check(declaration.getExpr() == )
+			check(assignmentCompatible(declaration.getType(), declaration), declaration, "Type of expression and declared type do not match");
+			symbolTable.lookup(name).setInitialized(true);
 		}
 		}
-
 
 		return null;
 	}

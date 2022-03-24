@@ -13,4 +13,8 @@ HashMap<String, Declaration> entries = new HashMap<>();
         return entries.get(name);
     }
 
+    public void delete(String name) {
+        entries.remove(name);
+    }
+
 }
