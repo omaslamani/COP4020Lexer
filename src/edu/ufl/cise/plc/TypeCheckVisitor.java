@@ -46,11 +46,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//FOR TESTING PURPOSES
 	public static void main (String args []) throws Exception {
 		Lexer lex = new Lexer("""
-				image BDP0()
-				int size;
-				size = 1;
+				image BDP0(int size)
 				int Z = 255;
-				image[size,size] a;
+			    image[size,size] a;
 				a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
 				^ a;
 				            """);
@@ -73,8 +71,10 @@ public class TypeCheckVisitor implements ASTVisitor {
 	private boolean assignmentCompatible (Type targetType, AssignmentStatement arg) throws Exception {
 		Expr expr = arg.getExpr();
 		Type exprType = (Type) expr.visit(this, arg);
-		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT))
+		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT)) {
+			expr.setCoerceTo(targetType);
 			return true;
+		}
 		if (targetType == IMAGE){
 			if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
 			if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
@@ -88,8 +88,10 @@ public class TypeCheckVisitor implements ASTVisitor {
 	private boolean assignmentCompatible (Type targetType, VarDeclaration arg) throws Exception {
 		Expr expr = arg.getExpr();
 		Type exprType = (Type) expr.visit(this, arg);
-		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT))
+		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT)) {
+			expr.setCoerceTo(targetType);
 			return true;
+		}
 		if (targetType == IMAGE){
 			if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
 			if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
@@ -465,6 +467,13 @@ public class TypeCheckVisitor implements ASTVisitor {
 		
 		//Check declarations and statements
 		List<ASTNode> decsAndStatements = program.getDecsAndStatements();
+		List<NameDef> params = program.getParams();
+		for (NameDef names:params) {
+			String message = "Variable " + names.getName() + " already in symbol table";
+			check(symbolTable.lookup(names.getName()) == null, names,message);
+			names.visit(this,arg);
+			names.setInitialized(true);
+		}
 		for (ASTNode node : decsAndStatements) {
 			node.visit(this, arg);
 		}
