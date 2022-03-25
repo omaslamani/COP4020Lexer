@@ -46,10 +46,10 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//FOR TESTING PURPOSES
 	public static void main (String args []) throws Exception {
 		Lexer lex = new Lexer("""
-				image BDP0(int size)
-				int Z = 255;
-			    image[size,size] a;
-				a[x,y] = <<(x/8*y/8)%(Z+1), 0, 0>>;
+				image test(int size)
+				image[size,size] a;
+				a = 10;
+				image b = a;
 				^ a;
 				            """);
 		Parser parser = new Parser(lex.tokens);
@@ -86,17 +86,27 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//for declarations
 	private boolean assignmentCompatible (Type targetType, VarDeclaration arg) throws Exception {
 		Expr expr = arg.getExpr();
+		Kind op = arg.getOp().getKind();
 		Type exprType = (Type) expr.visit(this, arg);
-		if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT)) {
-			expr.setCoerceTo(targetType);
-			return true;
+
+		if (op == Token.Kind.ASSIGN){
+			if ( (targetType == exprType) || (targetType == INT && exprType == FLOAT) ||(targetType == FLOAT && exprType == INT) || (targetType == INT && exprType == COLOR) ||(targetType == COLOR && exprType == INT)) {
+				expr.setCoerceTo(targetType);
+				return true;
+			}
+			if (targetType == IMAGE){
+				if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
+				if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
+				if (exprType == COLOR || exprType == COLORFLOAT) return true;
+			}
+			return false;
+
 		}
-		if (targetType == IMAGE){
-			if (exprType == INT) {expr.setCoerceTo(COLOR); return true;}
-			if (exprType == FLOAT) {expr.setCoerceTo(COLORFLOAT); return true;}
-			if (exprType == COLOR || exprType == COLORFLOAT) return true;
+		else if (op == Token.Kind.LARROW){
+			if ((expr.visit(this,arg) == CONSOLE) || (expr.visit(this,arg) == STRING)) { return true; }
+			else return false;
 		}
-		return false;
+	return false;
 	}
 	
 	//The type of a BooleanLitExpr is always BOOLEAN.  
@@ -400,6 +410,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 	public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
 
 		String name = readStatement.getName();
+		Declaration dec = symbolTable.lookup(name);
+		String msg = "Undeclared variable " + name;
 		Type targetType = symbolTable.lookup(name).getType();
 		String selectorError = "Read statement cannot have a pixelSelector!";
 		check(readStatement.getSelector() == null, readStatement, selectorError);
@@ -407,8 +419,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 		String rhsMsg = "Source must yield a type console or type string";
 		check(rhs, readStatement,rhsMsg);
 		symbolTable.lookup(name).setInitialized(true);
-
-		return null;
+		readStatement.setTargetDec(dec);
+		return targetType;
 	}
 
 	@Override
@@ -422,8 +434,10 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 		//if type is image
 		if (declaration.getType() == IMAGE) {
-			if (declaration.getDim() == null)
-				check(declaration.getExpr().getType() == IMAGE, declaration, "Initializer expression is not image");
+			if (declaration.getDim() == null){
+				if (declaration.getOp() != null && declaration.getOp().getKind() == Kind.ASSIGN)
+					check(declaration.getExpr().getType() == IMAGE, declaration, "Initializer expression is not image");
+			}
 			else {
 				Type dimType = (Type) declaration.getDim().visit(this, arg);
 				check(dimType == INT, declaration, "Dim type must be int");
@@ -438,8 +452,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 		else if (declaration.getOp().getKind() == Kind.LARROW){
 			declaration.getExpr().visit(this, arg);
-			//check(declaration.getExpr() == )
-			check(assignmentCompatible(declaration.getType(), declaration), declaration, "Type of expression and declared type do not match");
+			//does not check for pixel selector
+			check(assignmentCompatible(declaration.getType(), declaration), declaration, "Right hand side must be console or string");
 			symbolTable.lookup(name).setInitialized(true);
 		}
 		}
