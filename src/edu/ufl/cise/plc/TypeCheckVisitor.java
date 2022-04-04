@@ -46,11 +46,10 @@ public class TypeCheckVisitor implements ASTVisitor {
 	//FOR TESTING PURPOSES
 	public static void main (String args []) throws Exception {
 		Lexer lex = new Lexer("""
-				image test(int size)
-				image[size,size] a;
-				a = 10;
-				image b = a;
-				^ a;
+				string test(string size)
+				string sizem;
+				size = "ayp";
+				^ size;
 				            """);
 		Parser parser = new Parser(lex.tokens);
 		TypeCheckVisitor v = new TypeCheckVisitor();
@@ -199,6 +198,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		Kind op = binaryExpr.getOp().getKind();
 		Type leftType = (Type) binaryExpr.getLeft().visit(this, arg);
 		Type rightType = (Type) binaryExpr.getRight().visit(this, arg);
+
 		Type resultType = null;
 		switch(op) {
 			case AND,OR ->{
@@ -420,6 +420,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		check(rhs, readStatement,rhsMsg);
 		symbolTable.lookup(name).setInitialized(true);
 		readStatement.setTargetDec(dec);
+		//readStatement.getSource().setCoerceTo(dec.getType()); causes some tests to pass and others to fail
 		return targetType;
 	}
 

@@ -131,7 +131,7 @@ public class Parser implements IParser {
         if (match(Token.Kind.TYPE)){
             type = tokens.get(current).getText();
             current++;}
-        else throw new PLCException("Missing type");
+        else throw new SyntaxException("Missing type");
 
         //if next kind is square bracket
         if (match(Token.Kind.LSQUARE)){
