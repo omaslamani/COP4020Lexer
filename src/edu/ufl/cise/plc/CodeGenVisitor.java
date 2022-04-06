@@ -63,9 +63,8 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitFloatLitExpr(FloatLitExpr floatLitExpr, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
         Types.Type type = (floatLitExpr.getCoerceTo() != null && floatLitExpr.getCoerceTo() != Types.Type.FLOAT) ? floatLitExpr.getCoerceTo() : floatLitExpr.getType();
-        if (floatLitExpr.getCoerceTo() != type) {
-            sb.append("(").append(floatLitExpr.getCoerceTo()).append(") ");
-        }
+        if (floatLitExpr.getCoerceTo() != null && floatLitExpr.getCoerceTo() != Types.Type.FLOAT)
+            sb.append("(").append(lowerCaseString(type)).append(") ");
         sb.append(floatLitExpr.getValue());
         sb.append("f");
         return sb;
@@ -79,10 +78,8 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitConsoleExpr(ConsoleExpr consoleExpr, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
-        Types.Type coerceType = consoleExpr.getCoerceTo();
-        sb.append("(").append(boxed(coerceType)).append(") ");
-        sb.append("ConsoleIO.readValueFromConsole(\"").append(coerceType).append("\",");
-        sb.append("\"Enter ").append(boxed(coerceType)).append(":\")");
+        sb.append("ConsoleIO.readValueFromConsole(\"");
+        //currently handling the rest in read statement
         return sb;
     }
 
@@ -103,19 +100,10 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
         Types.Type type = binaryExpr.getType();
-        Expr leftExpr = binaryExpr.getLeft();
-        Expr rightExpr = binaryExpr.getRight();
-        Types.Type leftType = leftExpr.getCoerceTo() != null ? leftExpr.getCoerceTo() : leftExpr.getType();
-        Types.Type rightType = rightExpr.getCoerceTo() != null ? rightExpr.getCoerceTo() : rightExpr.getType();
-        IToken.Kind op = binaryExpr.getOp().getKind();
-
 
         if(type == Types.Type.IMAGE) {
-
             throw new UnsupportedOperationException("Not implemented yet");
-
         }
-
         else {
             sb.append("(").append(lowerCaseString(type)).append(")");
             sb.append("(");
@@ -132,6 +120,7 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
         Types.Type type = identExpr.getCoerceTo() != null ? identExpr.getCoerceTo() : identExpr.getType();
+        //add cast type if applicable
         if (identExpr.getCoerceTo() != null && identExpr.getCoerceTo() != type) {
             sb.append("(").append(lowerCaseString(identExpr.getCoerceTo())).append(")");
         }
@@ -173,8 +162,7 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
         sb.append("ConsoleIO.console.println(");
-        writeStatement.getSource().visit(this, sb);
-        sb.append(")");
+        sb.append(writeStatement.getSource().getText()).append(")");
         return sb;
     }
 
@@ -182,7 +170,13 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
         StringBuilder sb = (StringBuilder) arg;
         sb.append(readStatement.getName()).append("=");
+        //if reading from console then append (object version of type)
+        sb.append(" (").append(boxed(readStatement.getTargetDec().getType())).append(") ");
         readStatement.getSource().visit(this, sb);
+        //if reading from console
+        Types.Type targetType = readStatement.getTargetDec().getType();
+        sb.append(targetType).append("\",");
+        sb.append("\"Enter ").append(lowerCaseString(targetType)).append(":\")");
         return sb;
     }
 
