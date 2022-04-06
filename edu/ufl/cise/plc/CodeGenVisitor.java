@@ -12,7 +12,9 @@ public class CodeGenVisitor implements ASTVisitor {
         this.packageName = packageName;
     }
 
+    public static void main(String[] args){
 
+    }
 
     public String boxed(Types.Type type){
         if (type == Types.Type.INT)
