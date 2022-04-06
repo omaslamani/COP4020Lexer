@@ -31,8 +31,7 @@ public class CompilerComponentFactory {
 
 	public static ASTVisitor getCodeGenerator(String packageName) throws PLCException {
 
-		//implement
-		return null;
+		return new CodeGenVisitor(packageName);
 
 	}
 
