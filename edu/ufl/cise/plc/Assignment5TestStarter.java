@@ -264,32 +264,7 @@ class Assignment5TestStarter {
 		checkResult(input,  null, 42);
 	}
 
-	/*@Test
-	void unaryExp1() throws Exception {
-		String input = """
-        int unaryExp1(int a, int b)
-        int x = a + -b;
-        ^ x;
-        """;
-		int a = 33;
-		int b = 24;
-		Object[] params = { a, b};
-		checkResult(input, params, a - b);
-	}*/
-	/*@Test
-	void unaryExp2() throws Exception {
-		String input = """
-        int unaryExp2(int a, int b, int c)
-        int x = a - -b + -c;
-        ^ x;
-        """;
-		int a = 33;
-		int b = 24;
-		int c = 2;
-		Object[] params = { a, b, c};
-		checkResult(input, params, a + b - c);
-	}*/
-	/*@Test
+	@Test
 	void unaryExp1() throws Exception {
 		String input = """
         int unaryExp1(int a, int b)
@@ -301,7 +276,6 @@ class Assignment5TestStarter {
 		Object[] params = { a, b};
 		checkResult(input, params, a - b);
 	}
-
 	@Test
 	void unaryExp2() throws Exception {
 		String input = """
@@ -327,7 +301,7 @@ class Assignment5TestStarter {
         ^ x;
         """;
 		checkResult(input, null, 55);
-	}*/
+	}
 
 	@Test
 	void testConditional1() throws Exception {
@@ -342,7 +316,7 @@ class Assignment5TestStarter {
 		checkResult(input, params, a);
 	}
 
-	/*@Test
+	@Test
 	void testConditional2() throws Exception {
 		String input = """
         boolean testConditional1()
@@ -350,8 +324,7 @@ class Assignment5TestStarter {
         ^ if (!x) true else false fi;
         """;
 		checkResult(input, null, true);
-	}*/
-
+	}
 
 	@Test
 	void testFloat() throws Exception {
@@ -414,7 +387,7 @@ class Assignment5TestStarter {
 
 
 
-	/*@Test
+	@Test
 	void testp1() throws Exception {
 		String input = """
 	  		int a()
@@ -422,9 +395,9 @@ class Assignment5TestStarter {
 	  		^ c;
 	  		""";
 		checkResult(input,  null, 10);
-	}*/
+	}
 
-	/*@Test
+	@Test
 	void testp2() throws Exception {
 		String input = """
 	  		int a()
@@ -454,7 +427,7 @@ class Assignment5TestStarter {
 	  		^ c;
 	  		""";
 		checkResult(input,  null, 10.1f);
-	}*/
+	}
 
 	@Test
 	void testp5() throws Exception {
@@ -467,7 +440,7 @@ class Assignment5TestStarter {
 		checkResult(input,  null, 30);
 	}
 
-	/*@Test
+	@Test
 	void testCoerce() throws Exception {
 		String input = """
      int a()
@@ -482,7 +455,7 @@ class Assignment5TestStarter {
      ^ y;
      """;
 		checkResult(input,  null, 8);
-	}*/
+	}
 
 
 
@@ -511,7 +484,7 @@ class Assignment5TestStarter {
 	}
 
 
-	/*@Test
+	@Test
 	void testMany() throws Exception{
 		String input = """
 			boolean a(int b, float c, string d)
@@ -520,7 +493,7 @@ class Assignment5TestStarter {
 			write "e = " -> console;
 			write e -> console;
 			boolean f = if (b >= c) e else false fi;
-			write "\nf = " -> console;
+			write "f = " -> console;
 			write f -> console;
 			string g = "test";
 			boolean h = if (d == g) b >= c else b < c fi;
@@ -531,6 +504,6 @@ class Assignment5TestStarter {
 		String d = new String("test");
 		Object params[] = {b, c, d};
 		checkResult(input, params, true);
-	}*/
+	}
 
 }
