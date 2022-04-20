@@ -29,6 +29,8 @@ public class CodeGenVisitor implements ASTVisitor {
 
     public String lowerCaseString(Types.Type type){
         if (type == Types.Type.STRING)
+            return "BufferedImage";
+        if (type == Types.Type.STRING)
             return "String";
         else
             return type.toString().toLowerCase();
