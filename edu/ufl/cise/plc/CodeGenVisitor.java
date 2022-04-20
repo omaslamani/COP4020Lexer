@@ -7,7 +7,6 @@ import java.util.Locale;
 public class CodeGenVisitor implements ASTVisitor {
 
     private String packageName;
-    public boolean github;
     public CodeGenVisitor(String packageName) {
         this.packageName = packageName;
     }
@@ -106,7 +105,19 @@ public class CodeGenVisitor implements ASTVisitor {
         Types.Type type = binaryExpr.getType();
 
         if(type == Types.Type.IMAGE) {
+            //see this link? https://stackoverflow.com/questions/61491439/how-to-do-arithmetic-operations-on-pixels-in-java
+            //components are Red, Green, and Blue (componentwise =  changing values based on their RGB classification)
             throw new UnsupportedOperationException("Not implemented yet");
+
+        }
+        else if (type == Types.Type.COLOR){
+            //Color is pixelwise. Does not matter what RGB classificaton is, for loop through each pixel and manipulate it individually
+        }
+        else if ((binaryExpr.getLeft().getType() == Types.Type.IMAGE && binaryExpr.getRight().getType() == Types.Type.COLOR) && (binaryExpr.getRight().getType() == Types.Type.IMAGE && binaryExpr.getLeft().getType() == Types.Type.COLOR)){
+            //What is an image operation? How do I apply color to it?? See binaryExpr description. Does it mean pixels?
+        }
+        else if ((binaryExpr.getLeft().getType() == Types.Type.IMAGE && binaryExpr.getRight().getType() == Types.Type.INT) && (binaryExpr.getRight().getType() == Types.Type.IMAGE && binaryExpr.getLeft().getType() == Types.Type.INT)){
+            //Use the colorTuple constructor with 3 params
         }
         else {
             sb.append("(");
@@ -226,6 +237,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
+        //if getDim != null append readImage
        throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -250,6 +262,24 @@ public class CodeGenVisitor implements ASTVisitor {
                 sb.append(") ");
             }
             declaration.getExpr().visit(this, sb);
+        }
+        if(declaration.getType() == Types.Type.IMAGE){
+            if (declaration.getDim() != null && declaration.getExpr()!=null){ //Has initializer (<-) and dim = use ReadImage from FileURLIO with 3 params
+                sb.append("FileURLIO.readImage(");
+                declaration.getExpr().visit(this,sb);   // is this the right thing to do?
+            }
+            else if (declaration.getDim() != null && declaration.getExpr()==null){//Has NO initializer AKA getExpr==NULL and dim = use Java constructor for BufferedImage
+                //visitNameDefwithDim
+            }
+            else if (declaration.getDim() == null && declaration.getExpr()!=null){
+
+            }//Has initializer (<-) and NO dim = use ReadImage from FileURLIO with 1 param
+            else{
+                //Throw error from the typechecker. Call check from TypeCheckVisitor or???
+            }
+        }
+        if (declaration.getType() == Types.Type.COLOR){
+            declaration.getExpr().visit(this,sb); //should go to visitColorExpr and make object ColorTuple
         }
         return sb;
     }
